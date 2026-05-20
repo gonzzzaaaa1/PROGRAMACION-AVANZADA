@@ -5,11 +5,33 @@ public class Main {
 
         String[] menu = {"Login", "Salir"};
 
-        String[] opPaciente = {"Completar Datos", "Actualizar Datos Personales", "Solicitar Turno", "Ver Mis Turnos", "Cancelar Turno", "Ver Resultados de Estudios", "Cerrar Sesion"};
+        String[] opPaciente = {
+                "Completar Datos",
+                "Actualizar Datos Personales",
+                "Solicitar Turno",
+                "Ver Mis Turnos",
+                "Cancelar Turno",
+                "Ver Resultados de Estudios",
+                "Cerrar Sesion"
+        };
 
-        String[] opMedico = {"Ver Agenda", "Ver Historia Clinica", "Adjuntar Archivo a Historia Clinica", "Autorizar Resultados", "Cancelar Turno", "Cerrar Sesion"};
+        String[] opMedico = {
+                "Ver Agenda",
+                "Ver Historia Clinica",
+                "Adjuntar Archivo a Historia Clinica",
+                "Autorizar Resultados",
+                "Cancelar Turno",
+                "Cerrar Sesion"
+        };
 
-        String[] opAdmin = {"Registrar Usuario", "Dar de Baja Usuario", "Asignar Consultorio a Medico", "Configurar Tiempos de Turno", "Configurar Tarifas de Consulta y coberturas", "Cerrar Sesion"};
+        String[] opAdmin = {
+                "Registrar Usuario",
+                "Dar de Baja Usuario",
+                "Asignar Consultorio a Medico",
+                "Configurar Tiempos de Turno",
+                "Configurar Tarifas de Consulta y coberturas",
+                "Cerrar Sesion"
+        };
 
         int opcion;
         do {
@@ -29,29 +51,37 @@ public class Main {
                 if (dni == null) continue;
 
                 String contrasenia = JOptionPane.showInputDialog(null, "Contrasenia:");
+                if (contrasenia == null) continue;
 
                 UsuarioController controller = new UsuarioController();
-                String rol = controller.validarLogin(dni, contrasenia);
+                Usuario user = controller.validarLogin(dni, contrasenia);
 
-                if (contrasenia == null){
-                    if (rol.equalsIgnoreCase("admin")) {
-                        menuInterno("Admin", opAdmin);
-                    }
-                } else if (contrasenia == null){
-                    if (rol.equalsIgnoreCase("medico")) {
-                        menuInterno("Medico", opMedico);
-                    }
-                } else if (contrasenia == null){
-                    if (rol.equalsIgnoreCase("paciente")) {
-                        menuInterno("Paciente", opPaciente);
-                    }
-                } else {
+                if (user == null) {
                     JOptionPane.showMessageDialog(
                             null,
-                            "Credenciales incorrectas",
+                            "Credenciales incorrectas o usuario inactivo",
                             "Error",
                             JOptionPane.ERROR_MESSAGE
                     );
+                } else {
+                    switch (user.getRol().toUpperCase()) {
+                        case "ADMIN":
+                            menuInterno("Admin", opAdmin);
+                            break;
+                        case "MEDICO":
+                            menuInterno("Medico", opMedico);
+                            break;
+                        case "PACIENTE":
+                            menuInterno("Paciente", opPaciente);
+                            break;
+                        default:
+                            JOptionPane.showMessageDialog(
+                                    null,
+                                    "Rol desconocido: " + user.getRol(),
+                                    "Error",
+                                    JOptionPane.ERROR_MESSAGE
+                            );
+                    }
                 }
             }
         } while (opcion != 1 && opcion != JOptionPane.CLOSED_OPTION);
@@ -79,5 +109,4 @@ public class Main {
             }
         } while (seleccion != opciones.length - 1 && seleccion != JOptionPane.CLOSED_OPTION);
     }
-
 }
