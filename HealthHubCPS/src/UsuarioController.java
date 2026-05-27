@@ -11,9 +11,9 @@ public class UsuarioController {
                 "FROM usuario " +
                 "WHERE dni = ? AND contrasenia = ? AND activo = TRUE";
 
-        try (Connection con = Conexion.getInstance().getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
+        Connection con = Conexion.getInstance().getConnection();
 
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, dni);
             ps.setString(2, contrasenia);
 

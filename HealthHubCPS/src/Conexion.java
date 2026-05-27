@@ -5,7 +5,7 @@ import java.sql.SQLException;
 public class Conexion {
     private static final String URL = "jdbc:postgresql://localhost:5432/healthhubcps";
     private static final String USER = "postgres";
-    private static final String PASSWORD = "";
+    private static final String PASSWORD = "postgres";
 
     private static Connection conect;
     private static Conexion instance;
