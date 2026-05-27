@@ -1,9 +1,7 @@
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.*;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 public class UsuarioController {
 
@@ -39,10 +37,6 @@ public class UsuarioController {
         return user;
     }
 
-    /**
-     * Registra un nuevo usuario en la base y devuelve su ID generado.
-     * @return el id_usuario generado, o -1 si falla
-     */
     public int registrarUsuario(String dni, String contrasenia, String nombre,
                                 String apellido, String email, String telefono,
                                 String rol) {
@@ -74,9 +68,6 @@ public class UsuarioController {
         return -1;
     }
 
-    /**
-     * Registra los datos específicos del paciente, vinculado a un usuario ya creado.
-     */
     public boolean registrarPaciente(int idUsuario, LocalDate fechaNacimiento,
                                      String domicilio, int idObraSocial) {
         String sql = "INSERT INTO paciente (id_usuario, fecha_nacimiento, domicilio, id_obra_social) " +
@@ -98,9 +89,6 @@ public class UsuarioController {
         return false;
     }
 
-    /**
-     * Registra los datos específicos del médico, vinculado a un usuario ya creado.
-     */
     public boolean registrarMedico(int idUsuario, String matricula, int idEspecialidad) {
         String sql = "INSERT INTO medico (id_usuario, matricula, id_especialidad) " +
                 "VALUES (?, ?, ?)";
@@ -120,9 +108,6 @@ public class UsuarioController {
         return false;
     }
 
-    /**
-     * Crea la historia clínica vacía para un paciente recién registrado.
-     */
     public boolean crearHistoriaClinica(int idPaciente) {
         String sql = "INSERT INTO historia_clinica (id_paciente, fecha_creacion) VALUES (?, ?)";
 
@@ -135,6 +120,57 @@ public class UsuarioController {
             return true;
         } catch (SQLException e) {
             System.out.println("Error al crear historia clinica: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    /**
+     * Devuelve TODOS los usuarios (activos e inactivos) con su estado actual
+     * en formato "id - dni - nombre apellido (rol) [ACTIVO|INACTIVO]"
+     */
+    public List<String> listarTodosLosUsuarios() {
+        List<String> lista = new ArrayList<>();
+        String sql = "SELECT id_usuario, dni, nombre, apellido, rol, activo " +
+                "FROM usuario " +
+                "ORDER BY activo DESC, apellido, nombre";
+
+        Connection con = Conexion.getInstance().getConnection();
+
+        try (PreparedStatement ps = con.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                int id = rs.getInt("id_usuario");
+                String dni = rs.getString("dni");
+                String nombre = rs.getString("nombre");
+                String apellido = rs.getString("apellido");
+                String rol = rs.getString("rol");
+                boolean activo = rs.getBoolean("activo");
+                String estado = activo ? "ACTIVO" : "INACTIVO";
+                lista.add(id + " - " + dni + " - " + nombre + " " + apellido + " (" + rol + ") [" + estado + "]");
+            }
+        } catch (SQLException e) {
+            System.out.println("Error al listar usuarios: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return lista;
+    }
+
+    /**
+     * Cambia el estado activo/inactivo de un usuario.
+     */
+    public boolean cambiarEstadoUsuario(int idUsuario, boolean nuevoEstado) {
+        String sql = "UPDATE usuario SET activo = ? WHERE id_usuario = ?";
+        Connection con = Conexion.getInstance().getConnection();
+
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setBoolean(1, nuevoEstado);
+            ps.setInt(2, idUsuario);
+            int filasAfectadas = ps.executeUpdate();
+            return filasAfectadas > 0;
+        } catch (SQLException e) {
+            System.out.println("Error al cambiar estado: " + e.getMessage());
             e.printStackTrace();
         }
         return false;

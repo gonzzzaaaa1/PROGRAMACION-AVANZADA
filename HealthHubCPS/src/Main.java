@@ -18,7 +18,7 @@ public class Main {
         };
 
         String[] opAdmin = {
-                "Registrar Usuario", "Dar de Baja Usuario", "Asignar Consultorio a Medico",
+                "Registrar Usuario", "Gestionar Estado de Usuario", "Asignar Consultorio a Medico",
                 "Configurar Tiempos de Turno", "Configurar Tarifas de Consulta y coberturas", "Cerrar Sesion"
         };
 
@@ -44,7 +44,7 @@ public class Main {
                 } else {
                     switch (user.getRol().toUpperCase()) {
                         case "ADMIN":
-                            menuAdmin(opAdmin);
+                            menuAdmin(opAdmin, user);
                             break;
                         case "MEDICO":
                             menuInterno("Medico", opMedico);
@@ -60,8 +60,9 @@ public class Main {
 
     /**
      * Menú del admin con las funciones implementadas.
+     * Recibe el usuario logueado para evitar que se dé de baja a sí mismo.
      */
-    public static void menuAdmin(String[] opciones) {
+    public static void menuAdmin(String[] opciones, Usuario adminLogueado) {
         int seleccion;
         do {
             seleccion = JOptionPane.showOptionDialog(null, "Panel de Admin",
@@ -75,7 +76,7 @@ public class Main {
                     registrarUsuario();
                     break;
                 case 1:
-                    JOptionPane.showMessageDialog(null, "Funcion pendiente: Dar de Baja Usuario");
+                    gestionarEstadoUsuario(adminLogueado);
                     break;
                 case 2:
                     JOptionPane.showMessageDialog(null, "Funcion pendiente: Asignar Consultorio");
@@ -92,11 +93,7 @@ public class Main {
         } while (true);
     }
 
-    /**
-     * Flujo completo para registrar un nuevo usuario en la base.
-     */
     public static void registrarUsuario() {
-        // 1. Elegir rol
         String[] roles = {"PACIENTE", "MEDICO", "ADMIN"};
         int rolIdx = JOptionPane.showOptionDialog(null, "Que tipo de usuario desea registrar?",
                 "Registrar Usuario", JOptionPane.DEFAULT_OPTION,
@@ -104,7 +101,6 @@ public class Main {
         if (rolIdx == JOptionPane.CLOSED_OPTION) return;
         String rol = roles[rolIdx];
 
-        // 2. Pedir datos comunes
         String dni = JOptionPane.showInputDialog("DNI:");
         if (dni == null || dni.isEmpty()) return;
 
@@ -121,9 +117,8 @@ public class Main {
         if (email == null || email.isEmpty()) return;
 
         String telefono = JOptionPane.showInputDialog("Telefono:");
-        if (telefono == null) return; // Telefono puede estar vacio
+        if (telefono == null) return;
 
-        // 3. Insertar usuario base y obtener el ID
         UsuarioController uc = new UsuarioController();
         int idUsuario = uc.registrarUsuario(dni, contrasenia, nombre, apellido, email, telefono, rol);
 
@@ -133,14 +128,12 @@ public class Main {
             return;
         }
 
-        // 4. Segun el rol, pedir datos extra
         boolean ok = true;
         if (rol.equals("PACIENTE")) {
             ok = registrarDatosPaciente(idUsuario);
         } else if (rol.equals("MEDICO")) {
             ok = registrarDatosMedico(idUsuario);
         }
-        // Si es ADMIN, no necesita datos extra.
 
         if (ok) {
             JOptionPane.showMessageDialog(null, "Usuario registrado exitosamente.\nID: " + idUsuario);
@@ -151,7 +144,6 @@ public class Main {
     }
 
     private static boolean registrarDatosPaciente(int idUsuario) {
-        // Fecha de nacimiento
         String fechaStr = JOptionPane.showInputDialog("Fecha de nacimiento (YYYY-MM-DD):");
         if (fechaStr == null || fechaStr.isEmpty()) return false;
 
@@ -163,11 +155,9 @@ public class Main {
             return false;
         }
 
-        // Domicilio
         String domicilio = JOptionPane.showInputDialog("Domicilio:");
         if (domicilio == null || domicilio.isEmpty()) return false;
 
-        // Obra social (mostrar lista)
         ObraSocialController osc = new ObraSocialController();
         List<String> obras = osc.listarObrasSociales();
         if (obras.isEmpty()) {
@@ -182,7 +172,6 @@ public class Main {
 
         int idObraSocial = Integer.parseInt(elegida.split(" - ")[0]);
 
-        // Insertar paciente y crear historia clinica
         UsuarioController uc = new UsuarioController();
         boolean pacienteOk = uc.registrarPaciente(idUsuario, fechaNac, domicilio, idObraSocial);
         boolean hcOk = uc.crearHistoriaClinica(idUsuario);
@@ -191,11 +180,9 @@ public class Main {
     }
 
     private static boolean registrarDatosMedico(int idUsuario) {
-        // Matricula
         String matricula = JOptionPane.showInputDialog("Matricula:");
         if (matricula == null || matricula.isEmpty()) return false;
 
-        // Especialidad
         EspecialidadController ec = new EspecialidadController();
         List<String> especialidades = ec.listarEspecialidades();
         if (especialidades.isEmpty()) {
@@ -210,14 +197,63 @@ public class Main {
 
         int idEspecialidad = Integer.parseInt(elegida.split(" - ")[0]);
 
-        // Insertar medico
         UsuarioController uc = new UsuarioController();
         return uc.registrarMedico(idUsuario, matricula, idEspecialidad);
     }
 
     /**
-     * Menú para Médico y Paciente
+     * Permite alternar el estado de un usuario (activo <-> inactivo).
+     * No permite que el admin logueado se modifique a sí mismo.
      */
+    public static void gestionarEstadoUsuario(Usuario adminLogueado) {
+        UsuarioController uc = new UsuarioController();
+        List<String> usuarios = uc.listarTodosLosUsuarios();
+
+        if (usuarios.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "No hay usuarios en el sistema.");
+            return;
+        }
+
+        String[] usuariosArr = usuarios.toArray(new String[0]);
+        String elegido = (String) JOptionPane.showInputDialog(null,
+                "Seleccione el usuario:",
+                "Gestionar Estado de Usuario",
+                JOptionPane.QUESTION_MESSAGE, null, usuariosArr, usuariosArr[0]);
+
+        if (elegido == null) return;
+
+        int idUsuario = Integer.parseInt(elegido.split(" - ")[0]);
+
+        // Validacion: no puede modificar su propio estado
+        if (idUsuario == adminLogueado.getId()) {
+            JOptionPane.showMessageDialog(null,
+                    "No podes modificar tu propio estado mientras estas logueado.",
+                    "Accion no permitida", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // Detectar estado actual desde el string que elegimos
+        boolean estaActivo = elegido.contains("[ACTIVO]");
+        boolean nuevoEstado = !estaActivo;
+        String accion = nuevoEstado ? "DAR DE ALTA" : "DAR DE BAJA";
+
+        int confirm = JOptionPane.showConfirmDialog(null,
+                "Esta seguro que desea " + accion + " a:\n" + elegido + "?",
+                "Confirmar accion", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+
+        if (confirm != JOptionPane.YES_OPTION) return;
+
+        boolean ok = uc.cambiarEstadoUsuario(idUsuario, nuevoEstado);
+
+        if (ok) {
+            String msg = nuevoEstado ? "Usuario dado de alta exitosamente." : "Usuario dado de baja exitosamente.";
+            JOptionPane.showMessageDialog(null, msg);
+        } else {
+            JOptionPane.showMessageDialog(null, "Error al modificar el estado del usuario.",
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
     public static void menuInterno(String rol, String[] opciones) {
         int seleccion;
         do {
