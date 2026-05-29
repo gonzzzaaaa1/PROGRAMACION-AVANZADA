@@ -82,7 +82,7 @@ public class Main {
                     JOptionPane.showMessageDialog(null, "Funcion pendiente: Asignar Consultorio");
                     break;
                 case 3:
-                    JOptionPane.showMessageDialog(null, "Funcion pendiente: Configurar Tiempos");
+                    configurarTiemposDeTurno();
                     break;
                 case 4:
                     configurarTarifasYCoberturas();
@@ -343,7 +343,7 @@ public class Main {
                 null, covArr, covArr[0]);
         if (elegida == null) return;
 
-        // Formato: "idOS-idTE"
+        // Formato: "idOS-idTE -"
         String[] ids = elegida.split(" - ")[0].split("-");
         int idObraSocial = Integer.parseInt(ids[0]);
         int idTipoEstudio = Integer.parseInt(ids[1]);
@@ -370,7 +370,49 @@ public class Main {
     }
 
     /**
-     * Menu  para Medico y Paciente.
+     * Permite cambiar el tiempo en minutos de un tipo de estudio.
+     */
+    public static void configurarTiemposDeTurno() {
+        TipoEstudioController tec = new TipoEstudioController();
+        List<String> estudios = tec.listarTiposEstudioConTiempo();
+
+        if (estudios.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "No hay tipos de estudio en el sistema.");
+            return;
+        }
+
+        String[] estArr = estudios.toArray(new String[0]);
+        String elegido = (String) JOptionPane.showInputDialog(null,
+                "Seleccione el estudio:",
+                "Configurar Tiempo de Turno", JOptionPane.QUESTION_MESSAGE,
+                null, estArr, estArr[0]);
+        if (elegido == null) return;
+
+        int idEstudio = Integer.parseInt(elegido.split(" - ")[0]);
+
+        String nuevoStr = JOptionPane.showInputDialog("Ingrese la nueva duracion en minutos:");
+        if (nuevoStr == null || nuevoStr.isEmpty()) return;
+
+        int nuevoTiempo;
+        try {
+            nuevoTiempo = Integer.parseInt(nuevoStr);
+            if (nuevoTiempo <= 0) throw new NumberFormatException();
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(null, "El tiempo debe ser un numero entero positivo.");
+            return;
+        }
+
+        boolean ok = tec.actualizarTiempo(idEstudio, nuevoTiempo);
+        if (ok) {
+            JOptionPane.showMessageDialog(null, "Tiempo actualizado exitosamente.");
+        } else {
+            JOptionPane.showMessageDialog(null, "Error al actualizar el tiempo.",
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /**
+     * Menu para Medico y Paciente
      */
     public static void menuInterno(String rol, String[] opciones) {
         int seleccion;
