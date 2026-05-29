@@ -59,8 +59,8 @@ public class Main {
     }
 
     /**
-     * Menú del admin con las funciones implementadas.
-     * Recibe el usuario logueado para evitar que se dé de baja a sí mismo.
+     * Menu del admin con las funciones implementadas.
+     * Recibe el usuario logueado para evitar que se de de baja a si mismo.
      */
     public static void menuAdmin(String[] opciones, Usuario adminLogueado) {
         int seleccion;
@@ -85,15 +85,19 @@ public class Main {
                     JOptionPane.showMessageDialog(null, "Funcion pendiente: Configurar Tiempos");
                     break;
                 case 4:
-                    JOptionPane.showMessageDialog(null, "Funcion pendiente: Configurar Tarifas");
+                    configurarTarifasYCoberturas();
                     break;
                 case 5:
-                    return; // Cerrar sesión
+                    return; // Cerrar sesion
             }
         } while (true);
     }
 
+    /**
+     * Flujo completo para registrar un nuevo usuario en la base.
+     */
     public static void registrarUsuario() {
+        // 1. Elegir rol
         String[] roles = {"PACIENTE", "MEDICO", "ADMIN"};
         int rolIdx = JOptionPane.showOptionDialog(null, "Que tipo de usuario desea registrar?",
                 "Registrar Usuario", JOptionPane.DEFAULT_OPTION,
@@ -101,6 +105,7 @@ public class Main {
         if (rolIdx == JOptionPane.CLOSED_OPTION) return;
         String rol = roles[rolIdx];
 
+        // 2. Pedir datos comunes
         String dni = JOptionPane.showInputDialog("DNI:");
         if (dni == null || dni.isEmpty()) return;
 
@@ -119,6 +124,7 @@ public class Main {
         String telefono = JOptionPane.showInputDialog("Telefono:");
         if (telefono == null) return;
 
+        // 3. Insertar usuario base y obtener el ID
         UsuarioController uc = new UsuarioController();
         int idUsuario = uc.registrarUsuario(dni, contrasenia, nombre, apellido, email, telefono, rol);
 
@@ -128,12 +134,14 @@ public class Main {
             return;
         }
 
+        // 4. Segun el rol, pedir datos extra
         boolean ok = true;
         if (rol.equals("PACIENTE")) {
             ok = registrarDatosPaciente(idUsuario);
         } else if (rol.equals("MEDICO")) {
             ok = registrarDatosMedico(idUsuario);
         }
+        // Si es ADMIN, no necesita datos extra.
 
         if (ok) {
             JOptionPane.showMessageDialog(null, "Usuario registrado exitosamente.\nID: " + idUsuario);
@@ -144,6 +152,7 @@ public class Main {
     }
 
     private static boolean registrarDatosPaciente(int idUsuario) {
+        // Fecha de nacimiento
         String fechaStr = JOptionPane.showInputDialog("Fecha de nacimiento (YYYY-MM-DD):");
         if (fechaStr == null || fechaStr.isEmpty()) return false;
 
@@ -155,9 +164,11 @@ public class Main {
             return false;
         }
 
+        // Domicilio
         String domicilio = JOptionPane.showInputDialog("Domicilio:");
         if (domicilio == null || domicilio.isEmpty()) return false;
 
+        // Obra social (mostrar lista)
         ObraSocialController osc = new ObraSocialController();
         List<String> obras = osc.listarObrasSociales();
         if (obras.isEmpty()) {
@@ -172,6 +183,7 @@ public class Main {
 
         int idObraSocial = Integer.parseInt(elegida.split(" - ")[0]);
 
+        // Insertar paciente y crear historia clinica
         UsuarioController uc = new UsuarioController();
         boolean pacienteOk = uc.registrarPaciente(idUsuario, fechaNac, domicilio, idObraSocial);
         boolean hcOk = uc.crearHistoriaClinica(idUsuario);
@@ -180,9 +192,11 @@ public class Main {
     }
 
     private static boolean registrarDatosMedico(int idUsuario) {
+        // Matricula
         String matricula = JOptionPane.showInputDialog("Matricula:");
         if (matricula == null || matricula.isEmpty()) return false;
 
+        // Especialidad
         EspecialidadController ec = new EspecialidadController();
         List<String> especialidades = ec.listarEspecialidades();
         if (especialidades.isEmpty()) {
@@ -197,13 +211,14 @@ public class Main {
 
         int idEspecialidad = Integer.parseInt(elegida.split(" - ")[0]);
 
+        // Insertar medico
         UsuarioController uc = new UsuarioController();
         return uc.registrarMedico(idUsuario, matricula, idEspecialidad);
     }
 
     /**
      * Permite alternar el estado de un usuario (activo <-> inactivo).
-     * No permite que el admin logueado se modifique a sí mismo.
+     * No permite que el admin logueado se modifique a si mismo.
      */
     public static void gestionarEstadoUsuario(Usuario adminLogueado) {
         UsuarioController uc = new UsuarioController();
@@ -254,6 +269,109 @@ public class Main {
         }
     }
 
+    /**
+     * Pregunta si quiere modificar tarifas o coberturas, y dispara la accion.
+     */
+    public static void configurarTarifasYCoberturas() {
+        String[] opciones = {"Tarifa de un estudio", "Cobertura de obra social"};
+        int idx = JOptionPane.showOptionDialog(null,
+                "Que desea modificar?",
+                "Configurar Tarifas y Coberturas",
+                JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE,
+                null, opciones, opciones[0]);
+        if (idx == JOptionPane.CLOSED_OPTION) return;
+
+        if (idx == 0) {
+            configurarTarifa();
+        } else {
+            configurarCobertura();
+        }
+    }
+
+    private static void configurarTarifa() {
+        TipoEstudioController tec = new TipoEstudioController();
+        List<String> estudios = tec.listarTiposEstudio();
+
+        if (estudios.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "No hay tipos de estudio en el sistema.");
+            return;
+        }
+
+        String[] estArr = estudios.toArray(new String[0]);
+        String elegido = (String) JOptionPane.showInputDialog(null,
+                "Seleccione el estudio:",
+                "Modificar Tarifa", JOptionPane.QUESTION_MESSAGE,
+                null, estArr, estArr[0]);
+        if (elegido == null) return;
+
+        int idEstudio = Integer.parseInt(elegido.split(" - ")[0]);
+
+        String nuevaStr = JOptionPane.showInputDialog("Ingrese la nueva tarifa (en pesos):");
+        if (nuevaStr == null || nuevaStr.isEmpty()) return;
+
+        double nuevaTarifa;
+        try {
+            nuevaTarifa = Double.parseDouble(nuevaStr);
+            if (nuevaTarifa < 0) throw new NumberFormatException();
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(null, "La tarifa debe ser un numero positivo.");
+            return;
+        }
+
+        boolean ok = tec.actualizarTarifa(idEstudio, nuevaTarifa);
+        if (ok) {
+            JOptionPane.showMessageDialog(null, "Tarifa actualizada exitosamente.");
+        } else {
+            JOptionPane.showMessageDialog(null, "Error al actualizar la tarifa.",
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private static void configurarCobertura() {
+        CoberturaController cc = new CoberturaController();
+        List<String> coberturas = cc.listarCoberturas();
+
+        if (coberturas.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "No hay coberturas en el sistema.");
+            return;
+        }
+
+        String[] covArr = coberturas.toArray(new String[0]);
+        String elegida = (String) JOptionPane.showInputDialog(null,
+                "Seleccione la cobertura a modificar:",
+                "Modificar Cobertura", JOptionPane.QUESTION_MESSAGE,
+                null, covArr, covArr[0]);
+        if (elegida == null) return;
+
+        // Formato: "idOS-idTE"
+        String[] ids = elegida.split(" - ")[0].split("-");
+        int idObraSocial = Integer.parseInt(ids[0]);
+        int idTipoEstudio = Integer.parseInt(ids[1]);
+
+        String nuevoStr = JOptionPane.showInputDialog("Ingrese el nuevo porcentaje (0 a 99.99):");
+        if (nuevoStr == null || nuevoStr.isEmpty()) return;
+
+        double nuevoPorc;
+        try {
+            nuevoPorc = Double.parseDouble(nuevoStr);
+            if (nuevoPorc < 0 || nuevoPorc > 99.99) throw new NumberFormatException();
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(null, "El porcentaje debe estar entre 0 y 99.99.");
+            return;
+        }
+
+        boolean ok = cc.actualizarCobertura(idObraSocial, idTipoEstudio, nuevoPorc);
+        if (ok) {
+            JOptionPane.showMessageDialog(null, "Cobertura actualizada exitosamente.");
+        } else {
+            JOptionPane.showMessageDialog(null, "Error al actualizar la cobertura.",
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /**
+     * Menu  para Medico y Paciente.
+     */
     public static void menuInterno(String rol, String[] opciones) {
         int seleccion;
         do {
