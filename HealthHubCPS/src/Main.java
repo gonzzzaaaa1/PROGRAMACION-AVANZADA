@@ -60,7 +60,6 @@ public class Main {
 
     /**
      * Menu del admin con las funciones implementadas.
-     * Recibe el usuario logueado para evitar que se de de baja a si mismo.
      */
     public static void menuAdmin(String[] opciones, Usuario adminLogueado) {
         int seleccion;
@@ -79,7 +78,7 @@ public class Main {
                     gestionarEstadoUsuario(adminLogueado);
                     break;
                 case 2:
-                    JOptionPane.showMessageDialog(null, "Funcion pendiente: Asignar Consultorio");
+                    consultarConsultorioDeMedico();
                     break;
                 case 3:
                     configurarTiemposDeTurno();
@@ -97,7 +96,6 @@ public class Main {
      * Flujo completo para registrar un nuevo usuario en la base.
      */
     public static void registrarUsuario() {
-        // 1. Elegir rol
         String[] roles = {"PACIENTE", "MEDICO", "ADMIN"};
         int rolIdx = JOptionPane.showOptionDialog(null, "Que tipo de usuario desea registrar?",
                 "Registrar Usuario", JOptionPane.DEFAULT_OPTION,
@@ -105,7 +103,6 @@ public class Main {
         if (rolIdx == JOptionPane.CLOSED_OPTION) return;
         String rol = roles[rolIdx];
 
-        // 2. Pedir datos comunes
         String dni = JOptionPane.showInputDialog("DNI:");
         if (dni == null || dni.isEmpty()) return;
 
@@ -124,7 +121,6 @@ public class Main {
         String telefono = JOptionPane.showInputDialog("Telefono:");
         if (telefono == null) return;
 
-        // 3. Insertar usuario base y obtener el ID
         UsuarioController uc = new UsuarioController();
         int idUsuario = uc.registrarUsuario(dni, contrasenia, nombre, apellido, email, telefono, rol);
 
@@ -134,14 +130,12 @@ public class Main {
             return;
         }
 
-        // 4. Segun el rol, pedir datos extra
         boolean ok = true;
         if (rol.equals("PACIENTE")) {
             ok = registrarDatosPaciente(idUsuario);
         } else if (rol.equals("MEDICO")) {
             ok = registrarDatosMedico(idUsuario);
         }
-        // Si es ADMIN, no necesita datos extra.
 
         if (ok) {
             JOptionPane.showMessageDialog(null, "Usuario registrado exitosamente.\nID: " + idUsuario);
@@ -152,7 +146,6 @@ public class Main {
     }
 
     private static boolean registrarDatosPaciente(int idUsuario) {
-        // Fecha de nacimiento
         String fechaStr = JOptionPane.showInputDialog("Fecha de nacimiento (YYYY-MM-DD):");
         if (fechaStr == null || fechaStr.isEmpty()) return false;
 
@@ -164,11 +157,9 @@ public class Main {
             return false;
         }
 
-        // Domicilio
         String domicilio = JOptionPane.showInputDialog("Domicilio:");
         if (domicilio == null || domicilio.isEmpty()) return false;
 
-        // Obra social (mostrar lista)
         ObraSocialController osc = new ObraSocialController();
         List<String> obras = osc.listarObrasSociales();
         if (obras.isEmpty()) {
@@ -183,7 +174,6 @@ public class Main {
 
         int idObraSocial = Integer.parseInt(elegida.split(" - ")[0]);
 
-        // Insertar paciente y crear historia clinica
         UsuarioController uc = new UsuarioController();
         boolean pacienteOk = uc.registrarPaciente(idUsuario, fechaNac, domicilio, idObraSocial);
         boolean hcOk = uc.crearHistoriaClinica(idUsuario);
@@ -192,11 +182,9 @@ public class Main {
     }
 
     private static boolean registrarDatosMedico(int idUsuario) {
-        // Matricula
         String matricula = JOptionPane.showInputDialog("Matricula:");
         if (matricula == null || matricula.isEmpty()) return false;
 
-        // Especialidad
         EspecialidadController ec = new EspecialidadController();
         List<String> especialidades = ec.listarEspecialidades();
         if (especialidades.isEmpty()) {
@@ -211,14 +199,12 @@ public class Main {
 
         int idEspecialidad = Integer.parseInt(elegida.split(" - ")[0]);
 
-        // Insertar medico
         UsuarioController uc = new UsuarioController();
         return uc.registrarMedico(idUsuario, matricula, idEspecialidad);
     }
 
     /**
      * Permite alternar el estado de un usuario (activo <-> inactivo).
-     * No permite que el admin logueado se modifique a si mismo.
      */
     public static void gestionarEstadoUsuario(Usuario adminLogueado) {
         UsuarioController uc = new UsuarioController();
@@ -239,7 +225,6 @@ public class Main {
 
         int idUsuario = Integer.parseInt(elegido.split(" - ")[0]);
 
-        // Validacion: no puede modificar su propio estado
         if (idUsuario == adminLogueado.getId()) {
             JOptionPane.showMessageDialog(null,
                     "No podes modificar tu propio estado mientras estas logueado.",
@@ -247,7 +232,6 @@ public class Main {
             return;
         }
 
-        // Detectar estado actual desde el string que elegimos
         boolean estaActivo = elegido.contains("[ACTIVO]");
         boolean nuevoEstado = !estaActivo;
         String accion = nuevoEstado ? "DAR DE ALTA" : "DAR DE BAJA";
@@ -267,6 +251,48 @@ public class Main {
             JOptionPane.showMessageDialog(null, "Error al modificar el estado del usuario.",
                     "Error", JOptionPane.ERROR_MESSAGE);
         }
+    }
+
+    /**
+     * Muestra en que consultorios trabaja un medico segun sus turnos agendados.
+     */
+    public static void consultarConsultorioDeMedico() {
+        UsuarioController uc = new UsuarioController();
+        List<String> medicos = uc.listarMedicosActivos();
+
+        if (medicos.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "No hay medicos activos en el sistema.");
+            return;
+        }
+
+        String[] medArr = medicos.toArray(new String[0]);
+        String elegido = (String) JOptionPane.showInputDialog(null,
+                "Seleccione el medico:",
+                "Consultorio Asignado", JOptionPane.QUESTION_MESSAGE,
+                null, medArr, medArr[0]);
+        if (elegido == null) return;
+
+        int idMedico = Integer.parseInt(elegido.split(" - ")[0]);
+
+        ConsultorioController cc = new ConsultorioController();
+        List<String> consultorios = cc.consultoriosDeMedico(idMedico, 30);
+
+        StringBuilder msg = new StringBuilder();
+        msg.append("Medico: ").append(elegido).append("\n\n");
+
+        if (consultorios.isEmpty()) {
+            msg.append("Este medico aun no tiene consultorios asignados\n");
+            msg.append("(no tiene turnos agendados en los proximos 30 dias).\n\n");
+            msg.append("El consultorio se asigna al crear cada turno.");
+        } else {
+            msg.append("Consultorios donde atiende en los proximos 30 dias:\n\n");
+            for (String c : consultorios) {
+                msg.append("  - ").append(c).append("\n");
+            }
+        }
+
+        JOptionPane.showMessageDialog(null, msg.toString(),
+                "Consultorios del Medico", JOptionPane.INFORMATION_MESSAGE);
     }
 
     /**
@@ -343,7 +369,6 @@ public class Main {
                 null, covArr, covArr[0]);
         if (elegida == null) return;
 
-        // Formato: "idOS-idTE -"
         String[] ids = elegida.split(" - ")[0].split("-");
         int idObraSocial = Integer.parseInt(ids[0]);
         int idTipoEstudio = Integer.parseInt(ids[1]);
@@ -412,7 +437,7 @@ public class Main {
     }
 
     /**
-     * Menu para Medico y Paciente
+     * Menu para Medico y Paciente.
      */
     public static void menuInterno(String rol, String[] opciones) {
         int seleccion;

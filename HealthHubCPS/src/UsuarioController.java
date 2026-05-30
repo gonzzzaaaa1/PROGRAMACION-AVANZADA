@@ -125,10 +125,6 @@ public class UsuarioController {
         return false;
     }
 
-    /**
-     * Devuelve TODOS los usuarios (activos e inactivos) con su estado actual
-     * en formato "id - dni - nombre apellido (rol) [ACTIVO|INACTIVO]"
-     */
     public List<String> listarTodosLosUsuarios() {
         List<String> lista = new ArrayList<>();
         String sql = "SELECT id_usuario, dni, nombre, apellido, rol, activo " +
@@ -157,9 +153,6 @@ public class UsuarioController {
         return lista;
     }
 
-    /**
-     * Cambia el estado activo/inactivo de un usuario.
-     */
     public boolean cambiarEstadoUsuario(int idUsuario, boolean nuevoEstado) {
         String sql = "UPDATE usuario SET activo = ? WHERE id_usuario = ?";
         Connection con = Conexion.getInstance().getConnection();
@@ -174,5 +167,39 @@ public class UsuarioController {
             e.printStackTrace();
         }
         return false;
+    }
+
+    /**
+     * Lista los medicos activos con su matricula y especialidad.
+     */
+    public List<String> listarMedicosActivos() {
+        List<String> lista = new ArrayList<>();
+        String sql = "SELECT u.id_usuario, u.dni, u.nombre, u.apellido, m.matricula, e.nombre AS especialidad " +
+                "FROM usuario u " +
+                "JOIN medico m ON u.id_usuario = m.id_usuario " +
+                "JOIN especialidad e ON m.id_especialidad = e.id_especialidad " +
+                "WHERE u.activo = TRUE " +
+                "ORDER BY u.apellido, u.nombre";
+
+        Connection con = Conexion.getInstance().getConnection();
+
+        try (PreparedStatement ps = con.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                int id = rs.getInt("id_usuario");
+                String dni = rs.getString("dni");
+                String nombre = rs.getString("nombre");
+                String apellido = rs.getString("apellido");
+                String matricula = rs.getString("matricula");
+                String especialidad = rs.getString("especialidad");
+                lista.add(id + " - " + dni + " - " + nombre + " " + apellido +
+                        " [" + matricula + " - " + especialidad + "]");
+            }
+        } catch (SQLException e) {
+            System.out.println("Error al listar medicos: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return lista;
     }
 }
