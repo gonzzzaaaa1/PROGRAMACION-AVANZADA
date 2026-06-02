@@ -74,41 +74,50 @@ public class TurnoController {
         return lista;
     }
 
-    public List<String> listarConsultorios() {
-        List<String> lista = new ArrayList<>();
-        String sql = "SELECT id_consultorio, numero, ubicacion FROM consultorio ORDER BY numero";
-
-        Connection con = Conexion.getInstance().getConnection();
-
-        try (PreparedStatement ps = con.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-
-            while (rs.next()) {
-                int id = rs.getInt("id_consultorio");
-                String numero = rs.getString("numero");
-                String ubicacion = rs.getString("ubicacion");
-                lista.add(id + " - Consultorio " + numero + " (" + ubicacion + ")");
-            }
-        } catch (SQLException e) {
-            System.out.println("Error al listar consultorios: " + e.getMessage());
-        }
-        return lista;
-    }
-
-    public double calcularMontoTurno(int idTipoEstudio, int idPaciente) {
-        double montoFinal = 0;
-
-        String sql = "SELECT ts.tarifa_base, COALESCE(c.porcentaje_cobertura, 0) as cobertura " +
-                "FROM tipo_estudio ts " +
-                "LEFT JOIN cobertura c ON ts.id_tipo_estudio = c.id_tipo_estudio " +
-                "LEFT JOIN paciente p ON c.id_obra_social = p.id_obra_social " +
-                "WHERE ts.id_tipo_estudio = ? AND p.id_usuario = ?";
+    public String[] asignarConsultorioAutomatico(LocalDate fecha, String hora) {
+        String sql = "SELECT c.id_consultorio, c.numero, c.ubicacion " +
+                "FROM consultorio c " +
+                "WHERE c.id_consultorio NOT IN ( " +
+                "    SELECT t.id_consultorio FROM turno t " +
+                "    WHERE t.fecha = ? AND t.hora = ?::TIME AND t.estado = 'AGENDADO' " +
+                ") " +
+                "ORDER BY c.numero " +
+                "LIMIT 1";
 
         Connection con = Conexion.getInstance().getConnection();
 
         try (PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setInt(1, idTipoEstudio);
-            ps.setInt(2, idPaciente);
+            ps.setDate(1, Date.valueOf(fecha));
+            ps.setString(2, hora);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String id = String.valueOf(rs.getInt("id_consultorio"));
+                    String ubicacion = rs.getString("ubicacion");
+                    return new String[]{ id, ubicacion };
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error al asignar consultorio: " + e.getMessage());
+        }
+        return null;
+    }
+    public double calcularMontoTurno(int idTipoEstudio, int idPaciente) {
+        double montoFinal = 0;
+
+        String sql = "SELECT ts.tarifa_base, COALESCE(c.porcentaje_cobertura, 0) AS cobertura " +
+                "FROM tipo_estudio ts " +
+                "JOIN paciente p ON p.id_usuario = ? " +
+                "LEFT JOIN cobertura c ON c.id_tipo_estudio = ts.id_tipo_estudio " +
+                "                     AND c.id_obra_social = p.id_obra_social " +
+                "                     AND c.vigente = TRUE " +
+                "WHERE ts.id_tipo_estudio = ?";
+
+        Connection con = Conexion.getInstance().getConnection();
+
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, idPaciente);
+            ps.setInt(2, idTipoEstudio);
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -122,6 +131,7 @@ public class TurnoController {
         }
         return montoFinal;
     }
+
 
     public int crearTurno(LocalDate fecha, String hora, int idPaciente, int idMedico,
                           int idConsultorio, int idTipoEstudio, double montoFinal) {

@@ -278,20 +278,22 @@ public class Main {
         String hora = JOptionPane.showInputDialog(null, "Hora (HH:mm):");
         if (hora == null || hora.isEmpty()) return;
 
-        // Seleccionar consultorio
-        List<String> consultorios = tc.listarConsultorios();
-        if (consultorios.isEmpty()) {
-            JOptionPane.showMessageDialog(null, "No hay consultorios disponibles.");
+        // Asignar consultorio automaticamente
+        String[] consAsignado = tc.asignarConsultorioAutomatico(fecha, hora);
+        if (consAsignado == null) {
+            JOptionPane.showMessageDialog(null,
+                    "No hay consultorios disponibles para esa fecha y horario.",
+                    "Sin disponibilidad", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        String[] consArr = consultorios.toArray(new String[0]);
-        String consElegido = (String) JOptionPane.showInputDialog(null,
-                "Seleccione consultorio:",
-                "Solicitar Turno", JOptionPane.QUESTION_MESSAGE, null, consArr, consArr[0]);
-        if (consElegido == null) return;
+        int idConsultorio = Integer.parseInt(consAsignado[0]);
+        String ubicacionConsultorio = consAsignado[1];
 
-        int idConsultorio = Integer.parseInt(consElegido.split(" - ")[0]);
+        // Solo se le informa la ubicacion al paciente
+        JOptionPane.showMessageDialog(null,
+                "El consultorio fue asignado automaticamente.\nUbicacion: " + ubicacionConsultorio,
+                "Consultorio asignado", JOptionPane.INFORMATION_MESSAGE);
 
         // Calcular monto final con cobertura
         double montoFinal = tc.calcularMontoTurno(idTipoEstudio, idPaciente);
