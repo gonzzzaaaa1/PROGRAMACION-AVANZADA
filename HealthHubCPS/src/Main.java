@@ -50,12 +50,342 @@ public class Main {
                             menuInterno("Medico", opMedico);
                             break;
                         case "PACIENTE":
-                            menuInterno("Paciente", opPaciente);
+                            menuPaciente(opPaciente, user);
                             break;
                     }
                 }
             }
         } while (opcion != 1 && opcion != JOptionPane.CLOSED_OPTION);
+    }
+
+    /**
+     * Menú funcional del Paciente
+     */
+    public static void menuPaciente(String[] opciones, Usuario pacienteLogueado) {
+        int seleccion;
+        do {
+            seleccion = JOptionPane.showOptionDialog(null,
+                    "Bienvenido " + pacienteLogueado.getNombre() + " " + pacienteLogueado.getApellido(),
+                    "Panel de Paciente - HealthHubCPS",
+                    JOptionPane.DEFAULT_OPTION,
+                    JOptionPane.PLAIN_MESSAGE, null, opciones, opciones[0]);
+
+            if (seleccion == JOptionPane.CLOSED_OPTION) break;
+
+            switch (seleccion) {
+                case 0: // Completar Datos
+                    completarDatosPaciente(pacienteLogueado.getId());
+                    break;
+                case 1: // Actualizar Datos Personales
+                    actualizarDatosPersonales(pacienteLogueado);
+                    break;
+                case 2: // Solicitar Turno
+                    solicitarTurno(pacienteLogueado.getId());
+                    break;
+                case 3: // Ver Mis Turnos
+                    verMisTurnos(pacienteLogueado.getId());
+                    break;
+                case 4: // Cancelar Turno
+                    cancelarTurno(pacienteLogueado.getId());
+                    break;
+                case 5: // Ver Resultados
+                    verResultados(pacienteLogueado.getId());
+                    break;
+                case 6: // Cerrar Sesion
+                    return;
+            }
+        } while (true);
+    }
+
+    /**
+     * Completa los datos del paciente (fecha nacimiento, domicilio, obra social)
+     */
+    private static void completarDatosPaciente(int idPaciente) {
+        UsuarioController uc = new UsuarioController();
+
+        // Verificar si el paciente ya tiene datos completos
+        if (uc.pacienteTieneDatos(idPaciente)) {
+            JOptionPane.showMessageDialog(null, "Ya tienes todos tus datos completados.");
+            return;
+        }
+
+        String fechaStr = JOptionPane.showInputDialog(null, "Fecha de nacimiento (YYYY-MM-DD):");
+        if (fechaStr == null || fechaStr.isEmpty()) return;
+
+        LocalDate fechaNac;
+        try {
+            fechaNac = LocalDate.parse(fechaStr);
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(null, "Formato de fecha inválido. Use YYYY-MM-DD.",
+                    "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        String domicilio = JOptionPane.showInputDialog(null, "Domicilio:");
+        if (domicilio == null || domicilio.isEmpty()) return;
+
+        ObraSocialController osc = new ObraSocialController();
+        List<String> obras = osc.listarObrasSociales();
+        if (obras.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "No hay obras sociales cargadas en el sistema.");
+            return;
+        }
+
+        String[] obrasArr = obras.toArray(new String[0]);
+        String elegida = (String) JOptionPane.showInputDialog(null, "Seleccione su obra social:",
+                "Obra Social", JOptionPane.QUESTION_MESSAGE, null, obrasArr, obrasArr[0]);
+        if (elegida == null) return;
+
+        int idObraSocial = Integer.parseInt(elegida.split(" - ")[0]);
+
+        boolean ok = uc.completarDatosPaciente(idPaciente, fechaNac, domicilio, idObraSocial);
+        if (ok) {
+            JOptionPane.showMessageDialog(null, "Datos completados exitosamente.");
+        } else {
+            JOptionPane.showMessageDialog(null, "Error al completar los datos.",
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /**
+     * Actualiza los datos personales del paciente
+     */
+    private static void actualizarDatosPersonales(Usuario paciente) {
+        String[] opciones = {"Nombre", "Apellido", "Email", "Teléfono", "Volver"};
+        int seleccion;
+        do {
+            seleccion = JOptionPane.showOptionDialog(null,
+                    "¿Qué dato desea actualizar?",
+                    "Actualizar Datos",
+                    JOptionPane.DEFAULT_OPTION,
+                    JOptionPane.QUESTION_MESSAGE, null, opciones, opciones[0]);
+
+            if (seleccion == JOptionPane.CLOSED_OPTION || seleccion == 4) break;
+
+            switch (seleccion) {
+                case 0: // Nombre
+                    String nuevoNombre = JOptionPane.showInputDialog(null, "Nuevo nombre:", paciente.getNombre());
+                    if (nuevoNombre != null && !nuevoNombre.isEmpty()) {
+                        if (actualizarDato(paciente.getId(), "nombre", nuevoNombre)) {
+                            paciente.setNombre(nuevoNombre);
+                            JOptionPane.showMessageDialog(null, "Nombre actualizado.");
+                        }
+                    }
+                    break;
+                case 1: // Apellido
+                    String nuevoApellido = JOptionPane.showInputDialog(null, "Nuevo apellido:", paciente.getApellido());
+                    if (nuevoApellido != null && !nuevoApellido.isEmpty()) {
+                        if (actualizarDato(paciente.getId(), "apellido", nuevoApellido)) {
+                            paciente.setApellido(nuevoApellido);
+                            JOptionPane.showMessageDialog(null, "Apellido actualizado.");
+                        }
+                    }
+                    break;
+                case 2: // Email
+                    String nuevoEmail = JOptionPane.showInputDialog(null, "Nuevo email:", paciente.getEmail());
+                    if (nuevoEmail != null && !nuevoEmail.isEmpty()) {
+                        if (actualizarDato(paciente.getId(), "email", nuevoEmail)) {
+                            paciente.setEmail(nuevoEmail);
+                            JOptionPane.showMessageDialog(null, "Email actualizado.");
+                        }
+                    }
+                    break;
+                case 3: // Teléfono
+                    String nuevoTel = JOptionPane.showInputDialog(null, "Nuevo teléfono:", paciente.getTelefono());
+                    if (nuevoTel != null) {
+                        if (actualizarDato(paciente.getId(), "telefono", nuevoTel)) {
+                            paciente.setTelefono(nuevoTel);
+                            JOptionPane.showMessageDialog(null, "Teléfono actualizado.");
+                        }
+                    }
+                    break;
+            }
+        } while (true);
+    }
+
+    /**
+     * Actualiza un dato del usuario
+     */
+    private static boolean actualizarDato(int idUsuario, String campo, String valor) {
+        UsuarioController uc = new UsuarioController();
+        return uc.actualizarUsuario(idUsuario, campo, valor);
+    }
+
+    /**
+     * Solicita un nuevo turno para el paciente
+     */
+    private static void solicitarTurno(int idPaciente) {
+        TurnoController tc = new TurnoController();
+
+        // Seleccionar especialidad
+        List<String> especialidades = tc.listarEspecialidades();
+        if (especialidades.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "No hay especialidades disponibles.");
+            return;
+        }
+
+        String[] espArr = especialidades.toArray(new String[0]);
+        String espElegida = (String) JOptionPane.showInputDialog(null,
+                "Seleccione especialidad:",
+                "Solicitar Turno", JOptionPane.QUESTION_MESSAGE, null, espArr, espArr[0]);
+        if (espElegida == null) return;
+
+        int idEspecialidad = Integer.parseInt(espElegida.split(" - ")[0]);
+
+        // Seleccionar médico de esa especialidad
+        List<String> medicos = tc.listarMedicosPorEspecialidad(idEspecialidad);
+        if (medicos.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "No hay médicos disponibles en esta especialidad.");
+            return;
+        }
+
+        String[] medArr = medicos.toArray(new String[0]);
+        String medElegido = (String) JOptionPane.showInputDialog(null,
+                "Seleccione médico:",
+                "Solicitar Turno", JOptionPane.QUESTION_MESSAGE, null, medArr, medArr[0]);
+        if (medElegido == null) return;
+
+        int idMedico = Integer.parseInt(medElegido.split(" - ")[0]);
+
+        // Seleccionar tipo de estudio
+        List<String> estudios = tc.listarTiposEstudio();
+        if (estudios.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "No hay tipos de estudio disponibles.");
+            return;
+        }
+
+        String[] estArr = estudios.toArray(new String[0]);
+        String estElegido = (String) JOptionPane.showInputDialog(null,
+                "Seleccione tipo de estudio:",
+                "Solicitar Turno", JOptionPane.QUESTION_MESSAGE, null, estArr, estArr[0]);
+        if (estElegido == null) return;
+
+        int idTipoEstudio = Integer.parseInt(estElegido.split(" - ")[0]);
+
+        // Seleccionar fecha
+        String fechaStr = JOptionPane.showInputDialog(null, "Fecha del turno (YYYY-MM-DD):");
+        if (fechaStr == null || fechaStr.isEmpty()) return;
+
+        LocalDate fecha;
+        try {
+            fecha = LocalDate.parse(fechaStr);
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(null, "Formato de fecha inválido.");
+            return;
+        }
+
+        // Seleccionar hora
+        String hora = JOptionPane.showInputDialog(null, "Hora (HH:mm):");
+        if (hora == null || hora.isEmpty()) return;
+
+        // Seleccionar consultorio
+        List<String> consultorios = tc.listarConsultorios();
+        if (consultorios.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "No hay consultorios disponibles.");
+            return;
+        }
+
+        String[] consArr = consultorios.toArray(new String[0]);
+        String consElegido = (String) JOptionPane.showInputDialog(null,
+                "Seleccione consultorio:",
+                "Solicitar Turno", JOptionPane.QUESTION_MESSAGE, null, consArr, consArr[0]);
+        if (consElegido == null) return;
+
+        int idConsultorio = Integer.parseInt(consElegido.split(" - ")[0]);
+
+        // Calcular monto final con cobertura
+        double montoFinal = tc.calcularMontoTurno(idTipoEstudio, idPaciente);
+
+        // Crear el turno
+        int idTurno = tc.crearTurno(fecha, hora, idPaciente, idMedico, idConsultorio, idTipoEstudio, montoFinal);
+        if (idTurno > 0) {
+            JOptionPane.showMessageDialog(null,
+                    "Turno solicitado exitosamente.\nID: " + idTurno + "\nMonto a pagar: $" + montoFinal);
+        } else {
+            JOptionPane.showMessageDialog(null, "Error al solicitar el turno.",
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /**
+     * Muestra los turnos del paciente
+     */
+    private static void verMisTurnos(int idPaciente) {
+        TurnoController tc = new TurnoController();
+        List<String> turnos = tc.listarTurnosPaciente(idPaciente);
+
+        if (turnos.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "No tienes turnos agendados.");
+            return;
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("TUS TURNOS:\n\n");
+        for (String turno : turnos) {
+            sb.append(turno).append("\n");
+        }
+
+        JOptionPane.showMessageDialog(null, sb.toString(),
+                "Mis Turnos", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    /**
+     * Cancela un turno del paciente
+     */
+    private static void cancelarTurno(int idPaciente) {
+        TurnoController tc = new TurnoController();
+        List<String> turnos = tc.listarTurnosActivos(idPaciente);
+
+        if (turnos.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "No tienes turnos para cancelar.");
+            return;
+        }
+
+        String[] turnArr = turnos.toArray(new String[0]);
+        String turnoElegido = (String) JOptionPane.showInputDialog(null,
+                "Seleccione turno a cancelar:",
+                "Cancelar Turno", JOptionPane.QUESTION_MESSAGE, null, turnArr, turnArr[0]);
+        if (turnoElegido == null) return;
+
+        int idTurno = Integer.parseInt(turnoElegido.split(" - ")[0]);
+
+        String motivo = JOptionPane.showInputDialog(null, "Motivo de cancelación:");
+        if (motivo == null) return;
+
+        int confirmacion = JOptionPane.showConfirmDialog(null,
+                "¿Está seguro de cancelar este turno?",
+                "Confirmar Cancelación", JOptionPane.YES_NO_OPTION);
+
+        if (confirmacion == JOptionPane.YES_OPTION) {
+            if (tc.cancelarTurno(idTurno, motivo)) {
+                JOptionPane.showMessageDialog(null, "Turno cancelado exitosamente.");
+            } else {
+                JOptionPane.showMessageDialog(null, "Error al cancelar el turno.",
+                        "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    /**
+     * Muestra los resultados de estudios autorizados del paciente
+     */
+    private static void verResultados(int idPaciente) {
+        TurnoController tc = new TurnoController();
+        List<String> resultados = tc.listarResultadosPaciente(idPaciente);
+
+        if (resultados.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "No tienes resultados disponibles aún.");
+            return;
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("TUS RESULTADOS DE ESTUDIOS:\n\n");
+        for (String resultado : resultados) {
+            sb.append(resultado).append("\n\n");
+        }
+
+        JOptionPane.showMessageDialog(null, sb.toString(),
+                "Resultados de Estudios", JOptionPane.INFORMATION_MESSAGE);
     }
 
     /**
@@ -203,9 +533,6 @@ public class Main {
         return uc.registrarMedico(idUsuario, matricula, idEspecialidad);
     }
 
-    /**
-     * Permite alternar el estado de un usuario (activo <-> inactivo).
-     */
     public static void gestionarEstadoUsuario(Usuario adminLogueado) {
         UsuarioController uc = new UsuarioController();
         List<String> usuarios = uc.listarTodosLosUsuarios();
@@ -215,47 +542,34 @@ public class Main {
             return;
         }
 
-        String[] usuariosArr = usuarios.toArray(new String[0]);
+        String[] userArr = usuarios.toArray(new String[0]);
         String elegido = (String) JOptionPane.showInputDialog(null,
-                "Seleccione el usuario:",
-                "Gestionar Estado de Usuario",
-                JOptionPane.QUESTION_MESSAGE, null, usuariosArr, usuariosArr[0]);
-
+                "Seleccione usuario a modificar:",
+                "Gestionar Usuario", JOptionPane.QUESTION_MESSAGE,
+                null, userArr, userArr[0]);
         if (elegido == null) return;
 
         int idUsuario = Integer.parseInt(elegido.split(" - ")[0]);
-
-        if (idUsuario == adminLogueado.getId()) {
-            JOptionPane.showMessageDialog(null,
-                    "No podes modificar tu propio estado mientras estas logueado.",
-                    "Accion no permitida", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
         boolean estaActivo = elegido.contains("[ACTIVO]");
-        boolean nuevoEstado = !estaActivo;
-        String accion = nuevoEstado ? "DAR DE ALTA" : "DAR DE BAJA";
 
-        int confirm = JOptionPane.showConfirmDialog(null,
-                "Esta seguro que desea " + accion + " a:\n" + elegido + "?",
-                "Confirmar accion", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+        String[] opciones = {estaActivo ? "Desactivar" : "Activar", "Volver"};
+        int idx = JOptionPane.showOptionDialog(null,
+                "¿Que desea hacer?",
+                "Cambiar Estado",
+                JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE,
+                null, opciones, opciones[0]);
 
-        if (confirm != JOptionPane.YES_OPTION) return;
-
-        boolean ok = uc.cambiarEstadoUsuario(idUsuario, nuevoEstado);
-
-        if (ok) {
-            String msg = nuevoEstado ? "Usuario dado de alta exitosamente." : "Usuario dado de baja exitosamente.";
-            JOptionPane.showMessageDialog(null, msg);
-        } else {
-            JOptionPane.showMessageDialog(null, "Error al modificar el estado del usuario.",
-                    "Error", JOptionPane.ERROR_MESSAGE);
+        if (idx == 0) {
+            boolean ok = uc.cambiarEstadoUsuario(idUsuario, !estaActivo);
+            if (ok) {
+                JOptionPane.showMessageDialog(null, "Estado actualizado exitosamente.");
+            } else {
+                JOptionPane.showMessageDialog(null, "Error al cambiar el estado.",
+                        "Error", JOptionPane.ERROR_MESSAGE);
+            }
         }
     }
 
-    /**
-     * Muestra en que consultorios trabaja un medico segun sus turnos agendados.
-     */
     public static void consultarConsultorioDeMedico() {
         UsuarioController uc = new UsuarioController();
         List<String> medicos = uc.listarMedicosActivos();
@@ -437,7 +751,7 @@ public class Main {
     }
 
     /**
-     * Menu para Medico y Paciente.
+     * Menu para Medico.
      */
     public static void menuInterno(String rol, String[] opciones) {
         int seleccion;
