@@ -1,6 +1,7 @@
 import javax.swing.*;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.function.Function;
 
 public class Main {
     public static void main(String[] args) {
@@ -109,20 +110,13 @@ public class Main {
             return;
         }
 
-        String fechaStr = JOptionPane.showInputDialog(null, "Fecha de nacimiento (YYYY-MM-DD):");
-        if (fechaStr == null || fechaStr.isEmpty()) return;
+        String fechaStr = pedirDatoValidado("Fecha de nacimiento (YYYY-MM-DD):",
+                Validaciones::validarFechaNacimiento);
+        if (fechaStr == null) return;
+        LocalDate fechaNac = LocalDate.parse(fechaStr);
 
-        LocalDate fechaNac;
-        try {
-            fechaNac = LocalDate.parse(fechaStr);
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(null, "Formato de fecha inválido. Use YYYY-MM-DD.",
-                    "Error", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        String domicilio = JOptionPane.showInputDialog(null, "Domicilio:");
-        if (domicilio == null || domicilio.isEmpty()) return;
+        String domicilio = pedirDatoValidado("Domicilio:", Validaciones::validarDomicilio);
+        if (domicilio == null) return;
 
         ObraSocialController osc = new ObraSocialController();
         List<String> obras = osc.listarObrasSociales();
@@ -164,8 +158,10 @@ public class Main {
 
             switch (seleccion) {
                 case 0: // Nombre
-                    String nuevoNombre = JOptionPane.showInputDialog(null, "Nuevo nombre:", paciente.getNombre());
-                    if (nuevoNombre != null && !nuevoNombre.isEmpty()) {
+                    String nuevoNombre = pedirDatoValidadoConValor("Nuevo nombre:",
+                            paciente.getNombre(),
+                            v -> Validaciones.validarNombre(v, "El nombre"));
+                    if (nuevoNombre != null) {
                         if (actualizarDato(paciente.getId(), "nombre", nuevoNombre)) {
                             paciente.setNombre(nuevoNombre);
                             JOptionPane.showMessageDialog(null, "Nombre actualizado.");
@@ -173,8 +169,10 @@ public class Main {
                     }
                     break;
                 case 1: // Apellido
-                    String nuevoApellido = JOptionPane.showInputDialog(null, "Nuevo apellido:", paciente.getApellido());
-                    if (nuevoApellido != null && !nuevoApellido.isEmpty()) {
+                    String nuevoApellido = pedirDatoValidadoConValor("Nuevo apellido:",
+                            paciente.getApellido(),
+                            v -> Validaciones.validarNombre(v, "El apellido"));
+                    if (nuevoApellido != null) {
                         if (actualizarDato(paciente.getId(), "apellido", nuevoApellido)) {
                             paciente.setApellido(nuevoApellido);
                             JOptionPane.showMessageDialog(null, "Apellido actualizado.");
@@ -182,8 +180,10 @@ public class Main {
                     }
                     break;
                 case 2: // Email
-                    String nuevoEmail = JOptionPane.showInputDialog(null, "Nuevo email:", paciente.getEmail());
-                    if (nuevoEmail != null && !nuevoEmail.isEmpty()) {
+                    String nuevoEmail = pedirDatoValidadoConValor("Nuevo email:",
+                            paciente.getEmail(),
+                            Validaciones::validarEmail);
+                    if (nuevoEmail != null) {
                         if (actualizarDato(paciente.getId(), "email", nuevoEmail)) {
                             paciente.setEmail(nuevoEmail);
                             JOptionPane.showMessageDialog(null, "Email actualizado.");
@@ -191,7 +191,9 @@ public class Main {
                     }
                     break;
                 case 3: // Teléfono
-                    String nuevoTel = JOptionPane.showInputDialog(null, "Nuevo teléfono:", paciente.getTelefono());
+                    String nuevoTel = pedirDatoValidadoConValor("Nuevo teléfono:",
+                            paciente.getTelefono(),
+                            Validaciones::validarTelefono);
                     if (nuevoTel != null) {
                         if (actualizarDato(paciente.getId(), "telefono", nuevoTel)) {
                             paciente.setTelefono(nuevoTel);
@@ -201,6 +203,21 @@ public class Main {
                     break;
             }
         } while (true);
+    }
+
+    /**
+     * Variante de pedirDatoValidado que muestra un valor inicial (el actual).
+     * Se usa al actualizar datos, donde queremos mostrar el valor previo.
+     */
+    private static String pedirDatoValidadoConValor(String mensaje, String valorInicial,
+                                                    Function<String, String> validador) {
+        while (true) {
+            String valor = JOptionPane.showInputDialog(null, mensaje, valorInicial);
+            if (valor == null) return null; // canceló
+            String error = validador.apply(valor);
+            if (error == null) return valor.trim();
+            JOptionPane.showMessageDialog(null, error, "Dato invalido", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     /**
@@ -263,20 +280,21 @@ public class Main {
         int idTipoEstudio = Integer.parseInt(estElegido.split(" - ")[0]);
 
         // Seleccionar fecha
-        String fechaStr = JOptionPane.showInputDialog(null, "Fecha del turno (YYYY-MM-DD):");
-        if (fechaStr == null || fechaStr.isEmpty()) return;
-
-        LocalDate fecha;
-        try {
-            fecha = LocalDate.parse(fechaStr);
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(null, "Formato de fecha inválido.");
-            return;
-        }
+        String fechaStr = pedirDatoValidado("Fecha del turno (YYYY-MM-DD):",
+                Validaciones::validarFechaTurno);
+        if (fechaStr == null) return;
+        LocalDate fecha = LocalDate.parse(fechaStr);
 
         // Seleccionar hora
-        String hora = JOptionPane.showInputDialog(null, "Hora (HH:mm):");
-        if (hora == null || hora.isEmpty()) return;
+        String hora = pedirDatoValidado("Hora (HH:mm):", Validaciones::validarHoraTurno);
+        if (hora == null) return;
+
+        // Si la fecha es hoy, la hora debe ser futura
+        String errorHora = Validaciones.validarHoraFutura(fecha, hora);
+        if (errorHora != null) {
+            JOptionPane.showMessageDialog(null, errorHora, "Hora invalida", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
 
         // Asignar consultorio automaticamente
         String[] consAsignado = tc.asignarConsultorioAutomatico(fecha, hora);
@@ -351,7 +369,8 @@ public class Main {
 
         int idTurno = Integer.parseInt(turnoElegido.split(" - ")[0]);
 
-        String motivo = JOptionPane.showInputDialog(null, "Motivo de cancelación:");
+        String motivo = pedirDatoValidado("Motivo de cancelación:",
+                Validaciones::validarMotivoCancelacion);
         if (motivo == null) return;
 
         int confirmacion = JOptionPane.showConfirmDialog(null,
@@ -425,6 +444,21 @@ public class Main {
     }
 
     /**
+     * Pide un dato al usuario y lo valida con la funcion dada.
+     * Si es invalido, muestra el error y vuelve a preguntar.
+     * Devuelve el valor (trim) si es valido, o null si el usuario cancelo.
+     */
+    private static String pedirDatoValidado(String mensaje, Function<String, String> validador) {
+        while (true) {
+            String valor = JOptionPane.showInputDialog(mensaje);
+            if (valor == null) return null; // canceló
+            String error = validador.apply(valor);
+            if (error == null) return valor.trim();
+            JOptionPane.showMessageDialog(null, error, "Dato invalido", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /**
      * Flujo completo para registrar un nuevo usuario en la base.
      */
     public static void registrarUsuario() {
@@ -435,22 +469,22 @@ public class Main {
         if (rolIdx == JOptionPane.CLOSED_OPTION) return;
         String rol = roles[rolIdx];
 
-        String dni = JOptionPane.showInputDialog("DNI:");
-        if (dni == null || dni.isEmpty()) return;
+        String dni = pedirDatoValidado("DNI:", Validaciones::validarDni);
+        if (dni == null) return;
 
-        String contrasenia = JOptionPane.showInputDialog("Contrasenia:");
-        if (contrasenia == null || contrasenia.isEmpty()) return;
+        String contrasenia = pedirDatoValidado("Contrasenia:", Validaciones::validarContrasenia);
+        if (contrasenia == null) return;
 
-        String nombre = JOptionPane.showInputDialog("Nombre:");
-        if (nombre == null || nombre.isEmpty()) return;
+        String nombre = pedirDatoValidado("Nombre:", v -> Validaciones.validarNombre(v, "El nombre"));
+        if (nombre == null) return;
 
-        String apellido = JOptionPane.showInputDialog("Apellido:");
-        if (apellido == null || apellido.isEmpty()) return;
+        String apellido = pedirDatoValidado("Apellido:", v -> Validaciones.validarNombre(v, "El apellido"));
+        if (apellido == null) return;
 
-        String email = JOptionPane.showInputDialog("Email:");
-        if (email == null || email.isEmpty()) return;
+        String email = pedirDatoValidado("Email:", Validaciones::validarEmail);
+        if (email == null) return;
 
-        String telefono = JOptionPane.showInputDialog("Telefono:");
+        String telefono = pedirDatoValidado("Telefono (opcional):", Validaciones::validarTelefono);
         if (telefono == null) return;
 
         UsuarioController uc = new UsuarioController();
@@ -478,19 +512,13 @@ public class Main {
     }
 
     private static boolean registrarDatosPaciente(int idUsuario) {
-        String fechaStr = JOptionPane.showInputDialog("Fecha de nacimiento (YYYY-MM-DD):");
-        if (fechaStr == null || fechaStr.isEmpty()) return false;
+        String fechaStr = pedirDatoValidado("Fecha de nacimiento (YYYY-MM-DD):",
+                Validaciones::validarFechaNacimiento);
+        if (fechaStr == null) return false;
+        LocalDate fechaNac = LocalDate.parse(fechaStr);
 
-        LocalDate fechaNac;
-        try {
-            fechaNac = LocalDate.parse(fechaStr);
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(null, "Formato de fecha invalido. Use YYYY-MM-DD.");
-            return false;
-        }
-
-        String domicilio = JOptionPane.showInputDialog("Domicilio:");
-        if (domicilio == null || domicilio.isEmpty()) return false;
+        String domicilio = pedirDatoValidado("Domicilio:", Validaciones::validarDomicilio);
+        if (domicilio == null) return false;
 
         ObraSocialController osc = new ObraSocialController();
         List<String> obras = osc.listarObrasSociales();
@@ -514,8 +542,8 @@ public class Main {
     }
 
     private static boolean registrarDatosMedico(int idUsuario) {
-        String matricula = JOptionPane.showInputDialog("Matricula:");
-        if (matricula == null || matricula.isEmpty()) return false;
+        String matricula = pedirDatoValidado("Matricula:", Validaciones::validarMatricula);
+        if (matricula == null) return false;
 
         EspecialidadController ec = new EspecialidadController();
         List<String> especialidades = ec.listarEspecialidades();
@@ -648,17 +676,10 @@ public class Main {
 
         int idEstudio = Integer.parseInt(elegido.split(" - ")[0]);
 
-        String nuevaStr = JOptionPane.showInputDialog("Ingrese la nueva tarifa (en pesos):");
-        if (nuevaStr == null || nuevaStr.isEmpty()) return;
-
-        double nuevaTarifa;
-        try {
-            nuevaTarifa = Double.parseDouble(nuevaStr);
-            if (nuevaTarifa < 0) throw new NumberFormatException();
-        } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(null, "La tarifa debe ser un numero positivo.");
-            return;
-        }
+        String nuevaStr = pedirDatoValidado("Ingrese la nueva tarifa (en pesos):",
+                Validaciones::validarTarifa);
+        if (nuevaStr == null) return;
+        double nuevaTarifa = Double.parseDouble(nuevaStr);
 
         boolean ok = tec.actualizarTarifa(idEstudio, nuevaTarifa);
         if (ok) {
@@ -689,17 +710,10 @@ public class Main {
         int idObraSocial = Integer.parseInt(ids[0]);
         int idTipoEstudio = Integer.parseInt(ids[1]);
 
-        String nuevoStr = JOptionPane.showInputDialog("Ingrese el nuevo porcentaje (0 a 99.99):");
-        if (nuevoStr == null || nuevoStr.isEmpty()) return;
-
-        double nuevoPorc;
-        try {
-            nuevoPorc = Double.parseDouble(nuevoStr);
-            if (nuevoPorc < 0 || nuevoPorc > 99.99) throw new NumberFormatException();
-        } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(null, "El porcentaje debe estar entre 0 y 99.99.");
-            return;
-        }
+        String nuevoStr = pedirDatoValidado("Ingrese el nuevo porcentaje (0 a 99.99):",
+                Validaciones::validarPorcentajeCobertura);
+        if (nuevoStr == null) return;
+        double nuevoPorc = Double.parseDouble(nuevoStr);
 
         boolean ok = cc.actualizarCobertura(idObraSocial, idTipoEstudio, nuevoPorc);
         if (ok) {
@@ -731,17 +745,10 @@ public class Main {
 
         int idEstudio = Integer.parseInt(elegido.split(" - ")[0]);
 
-        String nuevoStr = JOptionPane.showInputDialog("Ingrese la nueva duracion en minutos:");
-        if (nuevoStr == null || nuevoStr.isEmpty()) return;
-
-        int nuevoTiempo;
-        try {
-            nuevoTiempo = Integer.parseInt(nuevoStr);
-            if (nuevoTiempo <= 0) throw new NumberFormatException();
-        } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(null, "El tiempo debe ser un numero entero positivo.");
-            return;
-        }
+        String nuevoStr = pedirDatoValidado("Ingrese la nueva duracion en minutos:",
+                Validaciones::validarDuracionMinutos);
+        if (nuevoStr == null) return;
+        int nuevoTiempo = Integer.parseInt(nuevoStr);
 
         boolean ok = tec.actualizarTiempo(idEstudio, nuevoTiempo);
         if (ok) {
