@@ -169,9 +169,6 @@ public class UsuarioController {
         return false;
     }
 
-    /**
-     * Lista los medicos activos con su matricula y especialidad.
-     */
     public List<String> listarMedicosActivos() {
         List<String> lista = new ArrayList<>();
         String sql = "SELECT u.id_usuario, u.dni, u.nombre, u.apellido, m.matricula, e.nombre AS especialidad " +
@@ -201,5 +198,132 @@ public class UsuarioController {
             e.printStackTrace();
         }
         return lista;
+    }
+
+    /**
+     * Verifica si un paciente ya tiene datos completos
+     */
+    public boolean pacienteTieneDatos(int idPaciente) {
+        String sql = "SELECT COUNT(*) as existe FROM paciente WHERE id_usuario = ?";
+
+        Connection con = Conexion.getInstance().getConnection();
+
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, idPaciente);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("existe") > 0;
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error al verificar datos del paciente: " + e.getMessage());
+        }
+        return false;
+    }
+
+    /**
+     * Completa o actualiza los datos del paciente
+     */
+    public boolean completarDatosPaciente(int idPaciente, LocalDate fechaNacimiento,
+                                          String domicilio, int idObraSocial) {
+        boolean existe = pacienteTieneDatos(idPaciente);
+
+        Connection con = Conexion.getInstance().getConnection();
+
+        if (existe) {
+            String sql = "UPDATE paciente SET fecha_nacimiento = ?, domicilio = ?, id_obra_social = ? " +
+                    "WHERE id_usuario = ?";
+
+            try (PreparedStatement ps = con.prepareStatement(sql)) {
+                ps.setDate(1, Date.valueOf(fechaNacimiento));
+                ps.setString(2, domicilio);
+                ps.setInt(3, idObraSocial);
+                ps.setInt(4, idPaciente);
+
+                ps.executeUpdate();
+                return true;
+            } catch (SQLException e) {
+                System.out.println("Error al actualizar datos del paciente: " + e.getMessage());
+            }
+        } else {
+            String sql = "INSERT INTO paciente (id_usuario, fecha_nacimiento, domicilio, id_obra_social) " +
+                    "VALUES (?, ?, ?, ?)";
+
+            try (PreparedStatement ps = con.prepareStatement(sql)) {
+                ps.setInt(1, idPaciente);
+                ps.setDate(2, Date.valueOf(fechaNacimiento));
+                ps.setString(3, domicilio);
+                ps.setInt(4, idObraSocial);
+
+                ps.executeUpdate();
+                return true;
+            } catch (SQLException e) {
+                System.out.println("Error al completar datos del paciente: " + e.getMessage());
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Actualiza un dato específico del usuario
+     */
+    public boolean actualizarUsuario(int idUsuario, String campo, String valor) {
+        if (!campo.matches("nombre|apellido|email|telefono")) {
+            System.out.println("Campo inválido: " + campo);
+            return false;
+        }
+
+        String sql = "UPDATE usuario SET " + campo + " = ? WHERE id_usuario = ?";
+
+        Connection con = Conexion.getInstance().getConnection();
+
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, valor);
+            ps.setInt(2, idUsuario);
+
+            int filasAfectadas = ps.executeUpdate();
+            return filasAfectadas > 0;
+        } catch (SQLException e) {
+            System.out.println("Error al actualizar usuario: " + e.getMessage());
+        }
+        return false;
+    }
+
+    /**
+     * Obtiene los datos del paciente
+     */
+    public String[] obtenerDatosPaciente(int idPaciente) {
+        String sql = "SELECT u.nombre, u.apellido, u.email, u.telefono, " +
+                "COALESCE(p.fecha_nacimiento::text, 'No completada') as fecha, " +
+                "COALESCE(p.domicilio, 'No completado') as domicilio, " +
+                "COALESCE(os.nombre, 'Sin obra social') as obra_social " +
+                "FROM usuario u " +
+                "LEFT JOIN paciente p ON u.id_usuario = p.id_usuario " +
+                "LEFT JOIN obra_social os ON p.id_obra_social = os.id_obra_social " +
+                "WHERE u.id_usuario = ?";
+
+        Connection con = Conexion.getInstance().getConnection();
+
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, idPaciente);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return new String[]{
+                            rs.getString("nombre") != null ? rs.getString("nombre") : "N/A",
+                            rs.getString("apellido") != null ? rs.getString("apellido") : "N/A",
+                            rs.getString("email") != null ? rs.getString("email") : "N/A",
+                            rs.getString("telefono") != null ? rs.getString("telefono") : "N/A",
+                            rs.getString("fecha"),
+                            rs.getString("domicilio"),
+                            rs.getString("obra_social")
+                    };
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error al obtener datos del paciente: " + e.getMessage());
+        }
+        return null;
     }
 }
