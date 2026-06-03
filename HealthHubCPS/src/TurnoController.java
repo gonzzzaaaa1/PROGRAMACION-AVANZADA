@@ -293,4 +293,33 @@ public class TurnoController {
         }
         return lista;
     }
+
+    public List<String> listarArchivosPaciente(int idPaciente) {
+        List<String> lista = new ArrayList<>();
+        String sql = "SELECT a.tipo, a.formato, a.url, a.fecha_carga " +
+                "FROM archivo_adjunto a " +
+                "JOIN historia_clinica h ON a.id_historia = h.id_historia " +
+                "WHERE h.id_paciente = ? " +
+                "ORDER BY a.fecha_carga DESC";
+
+        Connection con = Conexion.getInstance().getConnection();
+
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, idPaciente);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String tipo = rs.getString("tipo");
+                    String formato = rs.getString("formato");
+                    String url = rs.getString("url");
+                    String fecha = rs.getString("fecha_carga");
+
+                    lista.add("[" + tipo + " - " + formato + "] " + url + " (Subido: " + fecha + ")");
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error al listar archivos del paciente: " + e.getMessage());
+        }
+        return lista;
+    }
 }

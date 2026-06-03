@@ -15,7 +15,7 @@ public class Main {
 
         String[] opMedico = {
                 "Ver Agenda", "Ver Historia Clinica", "Adjuntar Archivo a Historia Clinica",
-                "Autorizar Resultados", "Cancelar Turno", "Cerrar Sesion"
+                "Subir Resultado", "Autorizar Resultados", "Cancelar Turno", "Cerrar Sesion"
         };
 
         String[] opAdmin = {
@@ -36,6 +36,12 @@ public class Main {
                 String contrasenia = JOptionPane.showInputDialog(null, "Contrasenia:");
                 if (contrasenia == null) continue;
 
+                if (dni.trim().isEmpty() || contrasenia.trim().isEmpty()) {
+                    JOptionPane.showMessageDialog(null, "Debe ingresar DNI y contrasenia.",
+                            "Error", JOptionPane.ERROR_MESSAGE);
+                    continue;
+                }
+
                 UsuarioController controller = new UsuarioController();
                 Usuario user = controller.validarLogin(dni, contrasenia);
 
@@ -48,7 +54,7 @@ public class Main {
                             menuAdmin(opAdmin, user);
                             break;
                         case "MEDICO":
-                            menuInterno("Medico", opMedico);
+                            menuMedico(opMedico, user);
                             break;
                         case "PACIENTE":
                             menuPaciente(opPaciente, user);
@@ -393,16 +399,27 @@ public class Main {
     private static void verResultados(int idPaciente) {
         TurnoController tc = new TurnoController();
         List<String> resultados = tc.listarResultadosPaciente(idPaciente);
+        List<String> archivos = tc.listarArchivosPaciente(idPaciente);
 
-        if (resultados.isEmpty()) {
+        if (resultados.isEmpty() && archivos.isEmpty()) {
             JOptionPane.showMessageDialog(null, "No tienes resultados disponibles aún.");
             return;
         }
 
         StringBuilder sb = new StringBuilder();
-        sb.append("TUS RESULTADOS DE ESTUDIOS:\n\n");
-        for (String resultado : resultados) {
-            sb.append(resultado).append("\n\n");
+
+        if (!resultados.isEmpty()) {
+            sb.append("TUS RESULTADOS DE ESTUDIOS:\n\n");
+            for (String resultado : resultados) {
+                sb.append(resultado).append("\n\n");
+            }
+        }
+
+        if (!archivos.isEmpty()) {
+            sb.append("ARCHIVOS ADJUNTOS:\n\n");
+            for (String archivo : archivos) {
+                sb.append(archivo).append("\n");
+            }
         }
 
         JOptionPane.showMessageDialog(null, sb.toString(),
@@ -760,18 +777,299 @@ public class Main {
     }
 
     /**
-     * Menu para Medico.
+     * Menú funcional del Médico.
      */
-    public static void menuInterno(String rol, String[] opciones) {
+    public static void menuMedico(String[] opciones, Usuario medicoLogueado) {
         int seleccion;
         do {
-            seleccion = JOptionPane.showOptionDialog(null, "Panel de " + rol,
-                    "HealthHubCPS", JOptionPane.DEFAULT_OPTION,
+            seleccion = JOptionPane.showOptionDialog(null,
+                    "Bienvenido Dr/a " + medicoLogueado.getNombre() + " " + medicoLogueado.getApellido(),
+                    "Panel de Medico - HealthHubCPS",
+                    JOptionPane.DEFAULT_OPTION,
                     JOptionPane.PLAIN_MESSAGE, null, opciones, opciones[0]);
 
-            if (seleccion != JOptionPane.CLOSED_OPTION && seleccion != opciones.length - 1) {
-                JOptionPane.showMessageDialog(null, "Has seleccionado: " + opciones[seleccion]);
+            if (seleccion == JOptionPane.CLOSED_OPTION) break;
+
+            switch (seleccion) {
+                case 0: // Ver Agenda
+                    verAgenda(medicoLogueado.getId());
+                    break;
+                case 1: // Ver Historia Clinica
+                    verHistoriaClinica(medicoLogueado.getId());
+                    break;
+                case 2: // Adjuntar Archivo a Historia Clinica
+                    adjuntarArchivo(medicoLogueado.getId());
+                    break;
+                case 3: // Subir Resultado
+                    subirResultado(medicoLogueado.getId());
+                    break;
+                case 4: // Autorizar Resultados
+                    autorizarResultados(medicoLogueado.getId());
+                    break;
+                case 5: // Cancelar Turno
+                    cancelarTurnoMedico(medicoLogueado.getId());
+                    break;
+                case 6: // Cerrar Sesion
+                    return;
             }
-        } while (seleccion != opciones.length - 1 && seleccion != JOptionPane.CLOSED_OPTION);
+        } while (true);
+    }
+
+    /**
+     * Muestra la agenda (turnos agendados) del médico.
+     */
+    private static void verAgenda(int idMedico) {
+        MedicoController mc = new MedicoController();
+        List<String> agenda = mc.listarAgenda(idMedico);
+
+        if (agenda.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "No tienes turnos agendados en tu agenda.");
+            return;
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("TU AGENDA:\n\n");
+        for (String turno : agenda) {
+            sb.append(turno).append("\n");
+        }
+
+        JOptionPane.showMessageDialog(null, sb.toString(),
+                "Agenda", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    /**
+     * Permite elegir un paciente y ver su historia clínica.
+     */
+    private static void verHistoriaClinica(int idMedico) {
+        MedicoController mc = new MedicoController();
+        List<String> pacientes = mc.listarPacientesDelMedico(idMedico);
+
+        if (pacientes.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "No tienes pacientes con turnos.");
+            return;
+        }
+
+        String[] pacArr = pacientes.toArray(new String[0]);
+        String elegido = (String) JOptionPane.showInputDialog(null, "Seleccione paciente:",
+                "Historia Clinica", JOptionPane.QUESTION_MESSAGE, null, pacArr, pacArr[0]);
+        if (elegido == null) return;
+
+        int idPaciente = Integer.parseInt(elegido.split(" - ")[0]);
+
+        String historia = mc.verHistoriaClinica(idPaciente);
+        if (historia == null) {
+            JOptionPane.showMessageDialog(null, "El paciente no tiene historia clinica.");
+            return;
+        }
+
+        JOptionPane.showMessageDialog(null, historia,
+                "Historia Clinica", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    /**
+     * Adjunta un archivo (PDF/JPG/PNG) a la historia clínica de un paciente.
+     */
+    private static void adjuntarArchivo(int idMedico) {
+        MedicoController mc = new MedicoController();
+        List<String> pacientes = mc.listarPacientesDelMedico(idMedico);
+
+        if (pacientes.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "No tienes pacientes con turnos.");
+            return;
+        }
+
+        String[] pacArr = pacientes.toArray(new String[0]);
+        String elegido = (String) JOptionPane.showInputDialog(null, "Seleccione paciente:",
+                "Adjuntar Archivo", JOptionPane.QUESTION_MESSAGE, null, pacArr, pacArr[0]);
+        if (elegido == null) return;
+
+        int idPaciente = Integer.parseInt(elegido.split(" - ")[0]);
+
+        int idHistoria = mc.obtenerIdHistoria(idPaciente);
+        if (idHistoria == -1) {
+            JOptionPane.showMessageDialog(null, "El paciente no tiene historia clinica.");
+            return;
+        }
+
+        String[] tipos = {"RECETA", "ESTUDIO", "RADIOGRAFIA", "OTRO"};
+        String tipo = (String) JOptionPane.showInputDialog(null, "Tipo de archivo:",
+                "Adjuntar Archivo", JOptionPane.QUESTION_MESSAGE, null, tipos, tipos[0]);
+        if (tipo == null) return;
+
+        String[] formatos = {"PDF", "JPG", "PNG"};
+        String formato = (String) JOptionPane.showInputDialog(null, "Formato del archivo:",
+                "Adjuntar Archivo", JOptionPane.QUESTION_MESSAGE, null, formatos, formatos[0]);
+        if (formato == null) return;
+
+        String url = JOptionPane.showInputDialog(null, "Ruta o URL del archivo:");
+        if (url == null || url.trim().isEmpty()) {
+            JOptionPane.showMessageDialog(null, "La ruta/URL no puede estar vacia.",
+                    "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        if (mc.adjuntarArchivo(idHistoria, idMedico, tipo, formato, url.trim())) {
+            JOptionPane.showMessageDialog(null, "Archivo adjuntado a la historia clinica.");
+        } else {
+            JOptionPane.showMessageDialog(null, "Error al adjuntar el archivo.",
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /**
+     * Sube el resultado de un turno y opcionalmente lo autoriza al instante.
+     */
+    private static void subirResultado(int idMedico) {
+        MedicoController mc = new MedicoController();
+        List<String> turnos = mc.listarTurnosSinResultado(idMedico);
+
+        if (turnos.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "No tienes turnos pendientes de cargar resultado.");
+            return;
+        }
+
+        String[] turnArr = turnos.toArray(new String[0]);
+        String elegido = (String) JOptionPane.showInputDialog(null, "Seleccione el turno para cargar resultado:",
+                "Subir Resultado", JOptionPane.QUESTION_MESSAGE, null, turnArr, turnArr[0]);
+        if (elegido == null) return;
+
+        int idTurno = Integer.parseInt(elegido.split(" - ")[0]);
+
+        String descripcion = JOptionPane.showInputDialog(null, "Descripcion del resultado:");
+        if (descripcion == null || descripcion.trim().isEmpty()) {
+            JOptionPane.showMessageDialog(null, "La descripcion no puede estar vacia.",
+                    "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // Archivo adjunto opcional
+        int adjuntarResp = JOptionPane.showConfirmDialog(null,
+                "¿Desea adjuntar un archivo al resultado (PDF, JPG, PNG)?",
+                "Adjuntar archivo", JOptionPane.YES_NO_OPTION);
+
+        String tipo = null;
+        String formato = null;
+        String url = null;
+
+        if (adjuntarResp == JOptionPane.YES_OPTION) {
+            String[] tipos = {"RECETA", "ESTUDIO", "RADIOGRAFIA", "OTRO"};
+            tipo = (String) JOptionPane.showInputDialog(null, "Tipo de archivo:",
+                    "Adjuntar Archivo", JOptionPane.QUESTION_MESSAGE, null, tipos, tipos[0]);
+            if (tipo == null) return;
+
+            String[] formatos = {"PDF", "JPG", "PNG"};
+            formato = (String) JOptionPane.showInputDialog(null, "Formato del archivo:",
+                    "Adjuntar Archivo", JOptionPane.QUESTION_MESSAGE, null, formatos, formatos[0]);
+            if (formato == null) return;
+
+            url = JOptionPane.showInputDialog(null, "Ruta o URL del archivo:");
+            if (url == null || url.trim().isEmpty()) {
+                JOptionPane.showMessageDialog(null, "La ruta/URL no puede estar vacia.",
+                        "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+        }
+
+        int autorizar = JOptionPane.showConfirmDialog(null,
+                "¿Autorizar el resultado ahora para que el paciente pueda verlo?",
+                "Autorizar", JOptionPane.YES_NO_OPTION);
+        boolean autorizado = (autorizar == JOptionPane.YES_OPTION);
+
+        boolean resultadoOk = mc.subirResultado(idTurno, descripcion.trim(), autorizado, idMedico);
+
+        if (!resultadoOk) {
+            JOptionPane.showMessageDialog(null, "Error al subir el resultado.",
+                    "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // Si hay archivo, lo adjunta a la historia clinica del paciente del turno
+        if (tipo != null) {
+            int idHistoria = mc.obtenerIdHistoriaDeTurno(idTurno);
+            if (idHistoria == -1) {
+                JOptionPane.showMessageDialog(null,
+                        "Resultado guardado, pero el paciente no tiene historia clinica para adjuntar el archivo.",
+                        "Advertencia", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            mc.adjuntarArchivo(idHistoria, idMedico, tipo, formato, url.trim());
+        }
+
+        String msg = autorizado
+                ? "Resultado subido y autorizado. El paciente ya puede verlo."
+                : "Resultado subido. Podras autorizarlo luego desde 'Autorizar Resultados'.";
+        JOptionPane.showMessageDialog(null, msg);
+    }
+
+    /**
+     * Autoriza un resultado pendiente para que el paciente pueda verlo.
+     */
+    private static void autorizarResultados(int idMedico) {
+        MedicoController mc = new MedicoController();
+        List<String> pendientes = mc.listarResultadosPendientes(idMedico);
+
+        if (pendientes.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "No tienes resultados pendientes de autorizar.");
+            return;
+        }
+
+        String[] resArr = pendientes.toArray(new String[0]);
+        String elegido = (String) JOptionPane.showInputDialog(null, "Seleccione resultado a autorizar:",
+                "Autorizar Resultados", JOptionPane.QUESTION_MESSAGE, null, resArr, resArr[0]);
+        if (elegido == null) return;
+
+        int idResultado = Integer.parseInt(elegido.split(" - ")[0]);
+
+        int confirmacion = JOptionPane.showConfirmDialog(null,
+                "¿Autorizar este resultado para que el paciente pueda verlo?",
+                "Confirmar", JOptionPane.YES_NO_OPTION);
+        if (confirmacion != JOptionPane.YES_OPTION) return;
+
+        if (mc.autorizarResultado(idResultado, idMedico)) {
+            JOptionPane.showMessageDialog(null, "Resultado autorizado exitosamente.");
+        } else {
+            JOptionPane.showMessageDialog(null, "Error al autorizar el resultado.",
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /**
+     * Permite al médico cancelar uno de sus turnos agendados.
+     */
+    private static void cancelarTurnoMedico(int idMedico) {
+        MedicoController mc = new MedicoController();
+        List<String> turnos = mc.listarAgenda(idMedico);
+
+        if (turnos.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "No tienes turnos para cancelar.");
+            return;
+        }
+
+        String[] turnArr = turnos.toArray(new String[0]);
+        String turnoElegido = (String) JOptionPane.showInputDialog(null, "Seleccione turno a cancelar:",
+                "Cancelar Turno", JOptionPane.QUESTION_MESSAGE, null, turnArr, turnArr[0]);
+        if (turnoElegido == null) return;
+
+        int idTurno = Integer.parseInt(turnoElegido.split(" - ")[0]);
+
+        String motivo = JOptionPane.showInputDialog(null, "Motivo de cancelacion:");
+        if (motivo == null || motivo.trim().isEmpty()) {
+            JOptionPane.showMessageDialog(null, "Debe ingresar un motivo de cancelacion.",
+                    "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        int confirmacion = JOptionPane.showConfirmDialog(null,
+                "¿Está seguro de cancelar este turno?",
+                "Confirmar Cancelacion", JOptionPane.YES_NO_OPTION);
+        if (confirmacion != JOptionPane.YES_OPTION) return;
+
+        TurnoController tc = new TurnoController();
+        if (tc.cancelarTurno(idTurno, motivo.trim())) {
+            JOptionPane.showMessageDialog(null, "Turno cancelado exitosamente.");
+        } else {
+            JOptionPane.showMessageDialog(null, "Error al cancelar el turno.",
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
     }
 }
