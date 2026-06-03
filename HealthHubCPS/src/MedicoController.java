@@ -217,6 +217,70 @@ public class MedicoController {
     }
 
     /**
+     * Lista los turnos del médico que todavía no tienen resultado cargado.
+     */
+    public List<String> listarTurnosSinResultado(int idMedico) {
+        List<String> lista = new ArrayList<>();
+        String sql = "SELECT t.id_turno, t.fecha, t.hora, u.nombre, u.apellido, te.nombre AS tipo_estudio " +
+                "FROM turno t " +
+                "JOIN usuario u ON t.id_paciente = u.id_usuario " +
+                "JOIN tipo_estudio te ON t.id_tipo_estudio = te.id_tipo_estudio " +
+                "WHERE t.id_medico = ? AND t.estado != 'CANCELADO' " +
+                "AND t.id_turno NOT IN (SELECT id_turno FROM resultado) " +
+                "ORDER BY t.fecha DESC, t.hora DESC";
+
+        Connection con = Conexion.getInstance().getConnection();
+
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, idMedico);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    int id = rs.getInt("id_turno");
+                    String fecha = rs.getString("fecha");
+                    String hora = rs.getString("hora");
+                    String paciente = rs.getString("nombre") + " " + rs.getString("apellido");
+                    String estudio = rs.getString("tipo_estudio");
+
+                    lista.add(id + " - " + fecha + " " + hora + " | " + paciente + " | " + estudio);
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error al listar turnos sin resultado: " + e.getMessage());
+        }
+        return lista;
+    }
+
+    /**
+     * Sube un resultado a un turno. Si autorizar=true lo deja visible al paciente de inmediato.
+     */
+    public boolean subirResultado(int idTurno, String descripcion, boolean autorizar, int idMedico) {
+        String sql;
+        if (autorizar) {
+            sql = "INSERT INTO resultado (id_turno, descripcion, autorizado, fecha_autorizacion, id_medico_autoriza) " +
+                    "VALUES (?, ?, TRUE, CURRENT_DATE, ?)";
+        } else {
+            sql = "INSERT INTO resultado (id_turno, descripcion, autorizado) VALUES (?, ?, FALSE)";
+        }
+
+        Connection con = Conexion.getInstance().getConnection();
+
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, idTurno);
+            ps.setString(2, descripcion);
+            if (autorizar) {
+                ps.setInt(3, idMedico);
+            }
+
+            int filasAfectadas = ps.executeUpdate();
+            return filasAfectadas > 0;
+        } catch (SQLException e) {
+            System.out.println("Error al subir resultado: " + e.getMessage());
+        }
+        return false;
+    }
+
+    /**
      * Autoriza un resultado para que el paciente pueda verlo.
      */
     public boolean autorizarResultado(int idResultado, int idMedico) {

@@ -14,7 +14,7 @@ public class Main {
 
         String[] opMedico = {
                 "Ver Agenda", "Ver Historia Clinica", "Adjuntar Archivo a Historia Clinica",
-                "Autorizar Resultados", "Cancelar Turno", "Cerrar Sesion"
+                "Subir Resultado", "Autorizar Resultados", "Cancelar Turno", "Cerrar Sesion"
         };
 
         String[] opAdmin = {
@@ -794,13 +794,16 @@ public class Main {
                 case 2: // Adjuntar Archivo a Historia Clinica
                     adjuntarArchivo(medicoLogueado.getId());
                     break;
-                case 3: // Autorizar Resultados
+                case 3: // Subir Resultado
+                    subirResultado(medicoLogueado.getId());
+                    break;
+                case 4: // Autorizar Resultados
                     autorizarResultados(medicoLogueado.getId());
                     break;
-                case 4: // Cancelar Turno
+                case 5: // Cancelar Turno
                     cancelarTurnoMedico(medicoLogueado.getId());
                     break;
-                case 5: // Cerrar Sesion
+                case 6: // Cerrar Sesion
                     return;
             }
         } while (true);
@@ -903,6 +906,48 @@ public class Main {
             JOptionPane.showMessageDialog(null, "Archivo adjuntado a la historia clinica.");
         } else {
             JOptionPane.showMessageDialog(null, "Error al adjuntar el archivo.",
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /**
+     * Sube el resultado de un turno y opcionalmente lo autoriza al instante.
+     */
+    private static void subirResultado(int idMedico) {
+        MedicoController mc = new MedicoController();
+        List<String> turnos = mc.listarTurnosSinResultado(idMedico);
+
+        if (turnos.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "No tienes turnos pendientes de cargar resultado.");
+            return;
+        }
+
+        String[] turnArr = turnos.toArray(new String[0]);
+        String elegido = (String) JOptionPane.showInputDialog(null, "Seleccione el turno para cargar resultado:",
+                "Subir Resultado", JOptionPane.QUESTION_MESSAGE, null, turnArr, turnArr[0]);
+        if (elegido == null) return;
+
+        int idTurno = Integer.parseInt(elegido.split(" - ")[0]);
+
+        String descripcion = JOptionPane.showInputDialog(null, "Descripcion del resultado:");
+        if (descripcion == null || descripcion.trim().isEmpty()) {
+            JOptionPane.showMessageDialog(null, "La descripcion no puede estar vacia.",
+                    "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        int autorizar = JOptionPane.showConfirmDialog(null,
+                "¿Autorizar el resultado ahora para que el paciente pueda verlo?",
+                "Autorizar", JOptionPane.YES_NO_OPTION);
+        boolean autorizado = (autorizar == JOptionPane.YES_OPTION);
+
+        if (mc.subirResultado(idTurno, descripcion.trim(), autorizado, idMedico)) {
+            String msg = autorizado
+                    ? "Resultado subido y autorizado. El paciente ya puede verlo."
+                    : "Resultado subido. Podras autorizarlo luego desde 'Autorizar Resultados'.";
+            JOptionPane.showMessageDialog(null, msg);
+        } else {
+            JOptionPane.showMessageDialog(null, "Error al subir el resultado.",
                     "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
