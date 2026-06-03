@@ -89,7 +89,33 @@ public class MedicoController {
                 }
             }
         } catch (SQLException e) {
-            System.out.println("Error al obtener historia clínica: " + e.getMessage());
+            System.out.println("Error al obtener historia clinica: " + e.getMessage());
+        }
+        return -1;
+    }
+
+    /**
+     * Obtiene el id_historia de la historia clínica del paciente de un turno dado.
+     * Devuelve -1 si el paciente no tiene historia.
+     */
+    public int obtenerIdHistoriaDeTurno(int idTurno) {
+        String sql = "SELECT h.id_historia " +
+                "FROM historia_clinica h " +
+                "JOIN turno t ON h.id_paciente = t.id_paciente " +
+                "WHERE t.id_turno = ?";
+
+        Connection con = Conexion.getInstance().getConnection();
+
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, idTurno);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("id_historia");
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error al obtener historia clinica del turno: " + e.getMessage());
         }
         return -1;
     }

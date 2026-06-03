@@ -936,20 +936,63 @@ public class Main {
             return;
         }
 
+        // Archivo adjunto opcional
+        int adjuntarResp = JOptionPane.showConfirmDialog(null,
+                "¿Desea adjuntar un archivo al resultado (PDF, JPG, PNG)?",
+                "Adjuntar archivo", JOptionPane.YES_NO_OPTION);
+
+        String tipo = null;
+        String formato = null;
+        String url = null;
+
+        if (adjuntarResp == JOptionPane.YES_OPTION) {
+            String[] tipos = {"RECETA", "ESTUDIO", "RADIOGRAFIA", "OTRO"};
+            tipo = (String) JOptionPane.showInputDialog(null, "Tipo de archivo:",
+                    "Adjuntar Archivo", JOptionPane.QUESTION_MESSAGE, null, tipos, tipos[0]);
+            if (tipo == null) return;
+
+            String[] formatos = {"PDF", "JPG", "PNG"};
+            formato = (String) JOptionPane.showInputDialog(null, "Formato del archivo:",
+                    "Adjuntar Archivo", JOptionPane.QUESTION_MESSAGE, null, formatos, formatos[0]);
+            if (formato == null) return;
+
+            url = JOptionPane.showInputDialog(null, "Ruta o URL del archivo:");
+            if (url == null || url.trim().isEmpty()) {
+                JOptionPane.showMessageDialog(null, "La ruta/URL no puede estar vacia.",
+                        "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+        }
+
         int autorizar = JOptionPane.showConfirmDialog(null,
                 "¿Autorizar el resultado ahora para que el paciente pueda verlo?",
                 "Autorizar", JOptionPane.YES_NO_OPTION);
         boolean autorizado = (autorizar == JOptionPane.YES_OPTION);
 
-        if (mc.subirResultado(idTurno, descripcion.trim(), autorizado, idMedico)) {
-            String msg = autorizado
-                    ? "Resultado subido y autorizado. El paciente ya puede verlo."
-                    : "Resultado subido. Podras autorizarlo luego desde 'Autorizar Resultados'.";
-            JOptionPane.showMessageDialog(null, msg);
-        } else {
+        boolean resultadoOk = mc.subirResultado(idTurno, descripcion.trim(), autorizado, idMedico);
+
+        if (!resultadoOk) {
             JOptionPane.showMessageDialog(null, "Error al subir el resultado.",
                     "Error", JOptionPane.ERROR_MESSAGE);
+            return;
         }
+
+        // Si hay archivo, lo adjunta a la historia clinica del paciente del turno
+        if (tipo != null) {
+            int idHistoria = mc.obtenerIdHistoriaDeTurno(idTurno);
+            if (idHistoria == -1) {
+                JOptionPane.showMessageDialog(null,
+                        "Resultado guardado, pero el paciente no tiene historia clinica para adjuntar el archivo.",
+                        "Advertencia", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            mc.adjuntarArchivo(idHistoria, idMedico, tipo, formato, url.trim());
+        }
+
+        String msg = autorizado
+                ? "Resultado subido y autorizado. El paciente ya puede verlo."
+                : "Resultado subido. Podras autorizarlo luego desde 'Autorizar Resultados'.";
+        JOptionPane.showMessageDialog(null, msg);
     }
 
     /**
