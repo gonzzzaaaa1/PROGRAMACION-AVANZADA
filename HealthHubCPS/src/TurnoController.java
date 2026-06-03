@@ -103,7 +103,7 @@ public class TurnoController {
         return null;
     }
     public double calcularMontoTurno(int idTipoEstudio, int idPaciente) {
-        double montoFinal = 0;
+        double montoCalculado = 0;
 
         String sql = "SELECT ts.tarifa_base, COALESCE(c.porcentaje_cobertura, 0) AS cobertura " +
                 "FROM tipo_estudio ts " +
@@ -123,11 +123,15 @@ public class TurnoController {
                 if (rs.next()) {
                     double tarifaBase = rs.getDouble("tarifa_base");
                     double porcentajeCobertura = rs.getDouble("cobertura");
-                    montoFinal = tarifaBase * (1 - porcentajeCobertura / 100);
+                    montoCalculado = tarifaBase * (1 - porcentajeCobertura / 100);
                 }
             }
         } catch (SQLException e) {
             System.out.println("Error al calcular monto: " + e.getMessage());
+        }
+        int montoFinal = (int) Math.round(montoCalculado);
+        if (montoFinal < 5000) {
+            montoFinal = 5000;
         }
         return montoFinal;
     }
