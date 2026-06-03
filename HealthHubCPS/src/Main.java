@@ -380,16 +380,27 @@ public class Main {
     private static void verResultados(int idPaciente) {
         TurnoController tc = new TurnoController();
         List<String> resultados = tc.listarResultadosPaciente(idPaciente);
+        List<String> archivos = tc.listarArchivosPaciente(idPaciente);
 
-        if (resultados.isEmpty()) {
+        if (resultados.isEmpty() && archivos.isEmpty()) {
             JOptionPane.showMessageDialog(null, "No tienes resultados disponibles aún.");
             return;
         }
 
         StringBuilder sb = new StringBuilder();
-        sb.append("TUS RESULTADOS DE ESTUDIOS:\n\n");
-        for (String resultado : resultados) {
-            sb.append(resultado).append("\n\n");
+
+        if (!resultados.isEmpty()) {
+            sb.append("TUS RESULTADOS DE ESTUDIOS:\n\n");
+            for (String resultado : resultados) {
+                sb.append(resultado).append("\n\n");
+            }
+        }
+
+        if (!archivos.isEmpty()) {
+            sb.append("ARCHIVOS ADJUNTOS:\n\n");
+            for (String archivo : archivos) {
+                sb.append(archivo).append("\n");
+            }
         }
 
         JOptionPane.showMessageDialog(null, sb.toString(),
