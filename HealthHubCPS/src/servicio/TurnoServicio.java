@@ -13,10 +13,20 @@ import modelo.Turno;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
-/** Logica de turnos: agendar (con consultorio y monto), listar y cancelar. */
+
 public class TurnoServicio {
+
+
+    public static final LocalTime HORA_APERTURA = LocalTime.of(8, 0);
+
+    public static final LocalTime HORA_CIERRE = LocalTime.of(17, 0);
+
+    public static final int INTERVALO_DEFECTO = 30;
 
     private final TurnoDAO turnoDAO = new TurnoDAO();
     private final ConsultorioDAO consultorioDAO = new ConsultorioDAO();
@@ -24,10 +34,47 @@ public class TurnoServicio {
     private final PacienteDAO pacienteDAO = new PacienteDAO();
     private final CoberturaDAO coberturaDAO = new CoberturaDAO();
 
-    /**
-     * Calcula el monto final del turno: tarifa base del estudio menos el porcentaje
-     * de cobertura vigente de la obra social del paciente.
-     */
+
+    public List<LocalTime> horariosDisponibles(LocalDate fecha, int idMedico, int idTipoEstudio) {
+        List<LocalTime> disponibles = new ArrayList<>();
+        if (fecha == null || fecha.isBefore(LocalDate.now())) {
+            return disponibles;
+        }
+
+        int intervalo = INTERVALO_DEFECTO;
+        TipoEstudio te = tipoEstudioDAO.buscarPorId(idTipoEstudio);
+        if (te != null && te.getTiempoMinutos() > 0) {
+            intervalo = te.getTiempoMinutos();
+        }
+
+
+        Set<LocalTime> ocupadasMedico = new HashSet<>(
+                turnoDAO.listarHorasOcupadasMedico(idMedico, fecha));
+
+        int totalConsultorios = consultorioDAO.listarTodos().size();
+        boolean esHoy = fecha.isEqual(LocalDate.now());
+        LocalTime ahora = LocalTime.now();
+
+        LocalTime hora = HORA_APERTURA;
+        while (hora.isBefore(HORA_CIERRE)) {
+            boolean libre = true;
+
+            if (esHoy && !hora.isAfter(ahora)) libre = false;
+
+            if (libre && ocupadasMedico.contains(hora)) libre = false;
+
+            if (libre && totalConsultorios > 0
+                    && turnoDAO.contarConsultoriosOcupados(fecha, hora) >= totalConsultorios) {
+                libre = false;
+            }
+
+            if (libre) disponibles.add(hora);
+            hora = hora.plusMinutes(intervalo);
+        }
+        return disponibles;
+    }
+
+
     public double calcularMonto(int idPaciente, int idTipoEstudio) {
         TipoEstudio te = tipoEstudioDAO.buscarPorId(idTipoEstudio);
         if (te == null) {
@@ -40,8 +87,7 @@ public class TurnoServicio {
             porcentaje = coberturaDAO.obtenerPorcentajeVigente(p.getIdObraSocial(), idTipoEstudio);
         }
         double monto = tarifa * (1 - porcentaje / 100.0);
-        if (monto < 0) monto = 0;
-        // Redondeo a 2 decimales.
+
         return Math.round(monto * 100.0) / 100.0;
     }
 
@@ -54,8 +100,24 @@ public class TurnoServicio {
         if (!pacienteDAO.tieneDatos(idPaciente)) {
             return Respuesta.error("Primero tenes que completar tus datos de paciente.");
         }
+        if (fecha == null || hora == null) {
+            return Respuesta.error("Tenes que elegir fecha y horario.");
+        }
         if (fecha.isBefore(LocalDate.now())) {
             return Respuesta.error("La fecha del turno no puede ser anterior a hoy.");
+        }
+
+        if (hora.isBefore(HORA_APERTURA) || !hora.isBefore(HORA_CIERRE)) {
+            return Respuesta.error("El horario esta fuera del horario de atencion (" +
+                    HORA_APERTURA + " a " + HORA_CIERRE + ").");
+        }
+
+        if (fecha.isEqual(LocalDate.now()) && !hora.isAfter(LocalTime.now())) {
+            return Respuesta.error("Ese horario ya paso. Elegi uno posterior.");
+        }
+
+        if (turnoDAO.medicoOcupado(idMedico, fecha, hora)) {
+            return Respuesta.error("Ese horario con el medico ya fue ocupado. Elegi otro.");
         }
         Consultorio libre = consultorioDAO.buscarLibre(fecha, hora);
         if (libre == null) {
@@ -76,10 +138,12 @@ public class TurnoServicio {
         if (turnoDAO.insertar(t)) {
             return Respuesta.ok("Turno agendado en " + libre + ". Monto final: $" + monto);
         }
-        return Respuesta.error("No se pudo agendar el turno.");
+
+        return Respuesta.error("No se pudo agendar el turno. Es posible que el horario " +
+                "se haya ocupado recien. Actualiza los horarios e intenta de nuevo.");
     }
 
-    /** Cancela un turno con su motivo. */
+
     public Respuesta cancelarTurno(int idTurno, String motivo) {
         if (motivo == null || motivo.trim().isEmpty()) {
             return Respuesta.error("Tenes que indicar un motivo de cancelacion.");

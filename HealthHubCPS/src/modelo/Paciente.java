@@ -2,7 +2,6 @@ package modelo;
 
 import java.time.LocalDate;
 
-/** Paciente: hereda de Usuario y agrega sus datos propios. */
 public class Paciente extends Usuario {
     private LocalDate fechaNacimiento;
     private String domicilio;

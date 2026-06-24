@@ -1,6 +1,5 @@
 package modelo;
 
-/** Asociacion entre ObraSocial y TipoEstudio (clave compuesta). */
 public class Cobertura {
     private int idObraSocial;
     private int idTipoEstudio;

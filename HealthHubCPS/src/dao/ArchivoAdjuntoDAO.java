@@ -89,7 +89,6 @@ public class ArchivoAdjuntoDAO implements DAO<ArchivoAdjunto> {
                 "FROM archivo_adjunto WHERE id_historia = ? ORDER BY fecha_carga DESC", idHistoria);
     }
 
-    /** Archivos de la historia clinica de un paciente. */
     public List<ArchivoAdjunto> listarPorPaciente(int idPaciente) {
         List<ArchivoAdjunto> lista = new ArrayList<>();
         String sql = "SELECT a.id_archivo, a.id_historia, a.id_medico_carga, a.tipo, a.formato, a.url, a.fecha_carga " +

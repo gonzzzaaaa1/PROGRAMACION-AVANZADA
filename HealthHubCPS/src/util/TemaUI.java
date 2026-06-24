@@ -4,7 +4,7 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 
-/** Estilos visuales. */
+
 public class TemaUI {
 
     public static final Color AZUL_OSCURO = new Color(0x1F2A44);
@@ -29,7 +29,7 @@ public class TemaUI {
                 }
             }
         } catch (Exception e) {
-            // queda el look por defecto
+
         }
     }
 
@@ -77,7 +77,7 @@ public class TemaUI {
         return t;
     }
 
-    /** Fila de formulario: etiqueta a la izquierda + campo a la derecha. */
+
     public static JPanel fila(String etiqueta, JComponent campo) {
         JPanel p = new JPanel(new BorderLayout(10, 0));
         p.setOpaque(false);
@@ -90,7 +90,7 @@ public class TemaUI {
         return p;
     }
 
-    /** Modelo de tabla de solo lectura. */
+
     public static DefaultTableModel modeloNoEditable(String[] columnas) {
         return new DefaultTableModel(columnas, 0) {
             @Override

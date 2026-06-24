@@ -45,7 +45,6 @@ public class TipoEstudioDAO implements DAO<TipoEstudio> {
         return false;
     }
 
-    /** Cambia solo la tarifa base de un estudio. */
     public boolean actualizarTarifa(int id, double tarifa) {
         String sql = "UPDATE tipo_estudio SET tarifa_base = ? WHERE id_tipo_estudio = ?";
         Connection con = Conexion.getInstance().getConnection();
@@ -59,7 +58,6 @@ public class TipoEstudioDAO implements DAO<TipoEstudio> {
         return false;
     }
 
-    /** Cambia solo la duracion en minutos de un estudio. */
     public boolean actualizarTiempo(int id, int minutos) {
         String sql = "UPDATE tipo_estudio SET tiempo_minutos = ? WHERE id_tipo_estudio = ?";
         Connection con = Conexion.getInstance().getConnection();

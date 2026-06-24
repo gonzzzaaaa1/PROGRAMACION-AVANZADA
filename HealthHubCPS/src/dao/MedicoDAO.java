@@ -78,8 +78,6 @@ public class MedicoDAO implements DAO<Medico> {
     public List<Medico> listarTodos() {
         return listar(false);
     }
-
-    /** Lista solo los medicos activos. */
     public List<Medico> listarActivos() {
         return listar(true);
     }
@@ -103,7 +101,6 @@ public class MedicoDAO implements DAO<Medico> {
         return lista;
     }
 
-    /** Pacientes que tienen (o tuvieron) turnos con este medico. */
     public List<Usuario> listarPacientesDelMedico(int idMedico) {
         List<Usuario> lista = new ArrayList<>();
         String sql = "SELECT DISTINCT u.id_usuario, u.dni, u.nombre, u.apellido " +

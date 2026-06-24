@@ -6,11 +6,7 @@ import util.TemaUI;
 import javax.swing.*;
 import java.awt.*;
 
-/**
- * Ventana base de la que heredan las ventanas de cada rol.
- * Arma el esqueleto comun: encabezado, menu lateral y area de contenido
- * con navegacion por tarjetas.
- */
+
 public abstract class VentanaBase extends JFrame {
 
     protected final Usuario usuario;
@@ -64,7 +60,7 @@ public abstract class VentanaBase extends JFrame {
         return header;
     }
 
-    /** Agrega un boton al menu lateral que muestra la tarjeta indicada. */
+
     protected void agregarOpcion(String texto, String idTarjeta) {
         JButton b = TemaUI.botonMenu(texto);
         b.addActionListener(e -> cards.show(contenido, idTarjeta));
@@ -80,7 +76,7 @@ public abstract class VentanaBase extends JFrame {
         cards.show(contenido, idTarjeta);
     }
 
-    /** Crea un panel de contenido vacio con su titulo arriba. */
+
     protected JPanel panelConTitulo(String titulo) {
         JPanel p = new JPanel(new BorderLayout(0, 14));
         p.setBackground(TemaUI.GRIS_FONDO);
@@ -89,7 +85,7 @@ public abstract class VentanaBase extends JFrame {
         return p;
     }
 
-    /** Crea un panel-formulario vertical con sus filas y un boton de accion. */
+
     protected JPanel panelFormulario(String titulo, JComponent[] filas, JButton accion) {
         JPanel p = panelConTitulo(titulo);
         JPanel caja = new JPanel();

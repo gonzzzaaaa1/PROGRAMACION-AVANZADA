@@ -73,8 +73,6 @@ public class ObraSocialDAO implements DAO<ObraSocial> {
     public List<ObraSocial> listarTodos() {
         return listar(false);
     }
-
-    /** Solo las obras sociales activas (para registrar pacientes). */
     public List<ObraSocial> listarActivas() {
         return listar(true);
     }

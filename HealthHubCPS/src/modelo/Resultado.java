@@ -10,6 +10,7 @@ public class Resultado {
     private LocalDate fechaAutorizacion;
     private int idMedicoAutoriza;
 
+    // Campos auxiliares para mostrar en pantalla
     private String nombrePaciente;
     private String nombreMedico;
     private String nombreEstudio;

@@ -1,9 +1,6 @@
 package servicio;
 
-/**
- * Objeto simple para que los servicios devuelvan el resultado de una operacion
- * (exito o error) junto con un mensaje para mostrar en la interfaz.
- */
+
 public class Respuesta {
     private final boolean exito;
     private final String mensaje;

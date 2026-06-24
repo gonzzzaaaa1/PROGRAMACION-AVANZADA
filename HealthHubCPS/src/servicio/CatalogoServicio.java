@@ -15,10 +15,6 @@ import modelo.TipoEstudio;
 
 import java.util.List;
 
-/**
- * Provee los datos de catalogo (para los combos de la interfaz) y centraliza
- * las configuraciones del administrador (tarifas, tiempos y coberturas).
- */
 public class CatalogoServicio {
 
     private final ObraSocialDAO obraSocialDAO = new ObraSocialDAO();
@@ -52,7 +48,6 @@ public class CatalogoServicio {
         return coberturaDAO.listarTodas();
     }
 
-    /** Consultorios donde un medico tiene turnos en los proximos N dias. */
     public List<Consultorio> consultoriosDeMedico(int idMedico, int dias) {
         return consultorioDAO.consultoriosDeMedico(idMedico, dias);
     }

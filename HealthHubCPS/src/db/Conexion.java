@@ -11,7 +11,6 @@ public class Conexion {
     private static Conexion instancia;
     private Connection conexion;
 
-    // Constructor privado: nadie puede crear instancias desde afuera.
     private Conexion() {
         try {
             Properties prop = cargarConfiguracion();
@@ -46,7 +45,6 @@ public class Conexion {
         return prop;
     }
 
-    /** Punto de acceso global a la unica instancia */
     public static Conexion getInstance() {
         if (instancia == null) {
             instancia = new Conexion();
@@ -54,7 +52,6 @@ public class Conexion {
         return instancia;
     }
 
-    /** Devuelve la conexion activa. */
     public Connection getConnection() {
         try {
             if (conexion == null || conexion.isClosed()) {
