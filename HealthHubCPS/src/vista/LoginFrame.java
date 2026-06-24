@@ -9,7 +9,6 @@ import util.Validaciones;
 import javax.swing.*;
 import java.awt.*;
 
-/** Ventana de inicio de sesion. Punto de entrada visual del sistema. */
 public class LoginFrame extends JFrame {
 
     private final UsuarioServicio usuarioServicio = new UsuarioServicio();

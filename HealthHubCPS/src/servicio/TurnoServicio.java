@@ -24,6 +24,8 @@ public class TurnoServicio {
     private final PacienteDAO pacienteDAO = new PacienteDAO();
     private final CoberturaDAO coberturaDAO = new CoberturaDAO();
 
+    private static final double MONTO_MINIMO = 2500.0;
+
     /**
      * Calcula el monto final del turno: tarifa base del estudio menos el porcentaje
      * de cobertura vigente de la obra social del paciente.
@@ -41,10 +43,12 @@ public class TurnoServicio {
         }
         double monto = tarifa * (1 - porcentaje / 100.0);
         if (monto < 0) monto = 0;
+        if (monto < MONTO_MINIMO) {
+            monto = MONTO_MINIMO;
+        }
         // Redondeo a 2 decimales.
         return Math.round(monto * 100.0) / 100.0;
     }
-
     /**
      * Agenda un turno: verifica que el paciente tenga datos, busca un consultorio libre,
      * calcula el monto y lo guarda.

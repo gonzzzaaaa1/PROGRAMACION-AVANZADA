@@ -78,13 +78,11 @@ public class HistoriaClinicaDAO implements DAO<HistoriaClinica> {
         return null;
     }
 
-    /** Devuelve el id_historia de un paciente, o -1 si no tiene historia. */
     public int obtenerIdHistoria(int idPaciente) {
         HistoriaClinica h = buscarPorPaciente(idPaciente);
         return h != null ? h.getId() : -1;
     }
 
-    /** Devuelve el id_historia del paciente asociado a un turno, o -1 si no existe. */
     public int obtenerIdHistoriaDeTurno(int idTurno) {
         String sql = "SELECT h.id_historia FROM historia_clinica h " +
                 "JOIN turno t ON t.id_paciente = h.id_paciente WHERE t.id_turno = ?";

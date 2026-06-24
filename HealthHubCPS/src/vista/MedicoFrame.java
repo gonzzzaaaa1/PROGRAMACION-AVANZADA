@@ -38,7 +38,6 @@ public class MedicoFrame extends VentanaBase {
         mostrar("agenda");
     }
 
-    // ---- Agenda ----
     private JPanel cardAgenda() {
         JPanel p = panelConTitulo("Mi agenda");
         DefaultTableModel modelo = TemaUI.modeloNoEditable(
@@ -59,7 +58,6 @@ public class MedicoFrame extends VentanaBase {
         return p;
     }
 
-    // ---- Historia clinica ----
     private JPanel cardHistoria() {
         JPanel p = panelConTitulo("Historia clinica del paciente");
         JComboBox<Usuario> cboPaciente = new JComboBox<>();
@@ -106,7 +104,6 @@ public class MedicoFrame extends VentanaBase {
         return p;
     }
 
-    // ---- Adjuntar archivo ----
     private JPanel cardAdjuntar() {
         JComboBox<Turno> cboTurno = comboTurnos(turnoServicio.listarAgendaMedico(usuario.getId()));
         JComboBox<TipoArchivo> cboTipo = new JComboBox<>(TipoArchivo.values());
@@ -132,7 +129,6 @@ public class MedicoFrame extends VentanaBase {
         }, adjuntar);
     }
 
-    // ---- Subir resultado ----
     private JPanel cardSubirResultado() {
         JComboBox<Turno> cboTurno = comboTurnos(medicoServicio.listarTurnosSinResultado(usuario.getId()));
         JTextArea txtDesc = new JTextArea(4, 20);
@@ -159,7 +155,6 @@ public class MedicoFrame extends VentanaBase {
         }, subir);
     }
 
-    // ---- Autorizar resultados ----
     private JPanel cardAutorizar() {
         JPanel p = panelConTitulo("Resultados pendientes de autorizar");
         DefaultTableModel modelo = TemaUI.modeloNoEditable(
@@ -188,7 +183,6 @@ public class MedicoFrame extends VentanaBase {
         return p;
     }
 
-    // ---- Cancelar turno ----
     private JPanel cardCancelar() {
         JPanel p = panelConTitulo("Cancelar turno de la agenda");
         DefaultTableModel modelo = TemaUI.modeloNoEditable(

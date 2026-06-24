@@ -56,7 +56,6 @@ public class TurnoDAO implements DAO<Turno> {
         return false;
     }
 
-    /** Cancela un turno (cambia el estado y guarda el motivo). */
     public boolean cancelar(int idTurno, String motivo) {
         String sql = "UPDATE turno SET estado = 'CANCELADO'::estado_turno, motivo_cancel = ? " +
                 "WHERE id_turno = ?";
@@ -106,25 +105,21 @@ public class TurnoDAO implements DAO<Turno> {
         return ejecutarLista(baseSelect() + "ORDER BY t.fecha DESC, t.hora DESC", 0);
     }
 
-    /** Todos los turnos de un paciente (historial completo). */
     public List<Turno> listarPorPaciente(int idPaciente) {
         return ejecutarLista(baseSelect() + "WHERE t.id_paciente = ? " +
                 "ORDER BY t.fecha DESC, t.hora DESC", idPaciente);
     }
 
-    /** Turnos AGENDADOS de un paciente (los que se pueden cancelar). */
     public List<Turno> listarActivosPaciente(int idPaciente) {
         return ejecutarLista(baseSelect() + "WHERE t.id_paciente = ? AND t.estado = 'AGENDADO' " +
                 "ORDER BY t.fecha, t.hora", idPaciente);
     }
 
-    /** Agenda del medico: sus turnos AGENDADOS. */
     public List<Turno> listarAgendaMedico(int idMedico) {
         return ejecutarLista(baseSelect() + "WHERE t.id_medico = ? AND t.estado = 'AGENDADO' " +
                 "ORDER BY t.fecha, t.hora", idMedico);
     }
 
-    /** Turnos del medico (no cancelados) que todavia no tienen resultado cargado. */
     public List<Turno> listarSinResultadoMedico(int idMedico) {
         return ejecutarLista(baseSelect() + "WHERE t.id_medico = ? AND t.estado <> 'CANCELADO' " +
                 "AND t.id_turno NOT IN (SELECT id_turno FROM resultado) " +

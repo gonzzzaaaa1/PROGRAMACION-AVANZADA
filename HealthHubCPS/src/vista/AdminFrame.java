@@ -34,7 +34,6 @@ public class AdminFrame extends VentanaBase {
         mostrar("registrar");
     }
 
-    // ---- Registrar usuario ----
     private JPanel cardRegistrar() {
         JComboBox<Rol> cboRol = new JComboBox<>(Rol.values());
         JTextField txtDni = TemaUI.campo();
@@ -48,7 +47,6 @@ public class AdminFrame extends VentanaBase {
         JComboBox<Especialidad> cboEsp = new JComboBox<>();
         for (Especialidad esp : catalogoServicio.listarEspecialidades()) cboEsp.addItem(esp);
 
-        // Los campos de medico solo se habilitan si el rol es MEDICO.
         Runnable ajustar = () -> {
             boolean esMedico = cboRol.getSelectedItem() == Rol.MEDICO;
             txtMatricula.setEnabled(esMedico);
@@ -113,7 +111,6 @@ public class AdminFrame extends VentanaBase {
         u.setRol(rol);
     }
 
-    // ---- Gestionar estado de usuarios ----
     private JPanel cardEstado() {
         JPanel p = panelConTitulo("Gestionar estado de usuarios");
         DefaultTableModel modelo = TemaUI.modeloNoEditable(
@@ -151,7 +148,6 @@ public class AdminFrame extends VentanaBase {
         recargar.run();
     }
 
-    // ---- Consultorios por medico ----
     private JPanel cardConsultorios() {
         JPanel p = panelConTitulo("Consultorios por medico (proximos 30 dias)");
         JComboBox<Medico> cboMedico = new JComboBox<>();
@@ -188,7 +184,6 @@ public class AdminFrame extends VentanaBase {
         return p;
     }
 
-    // ---- Tarifas y tiempos de estudios ----
     private JPanel cardEstudios() {
         JPanel p = panelConTitulo("Tarifas y tiempos de estudios");
         DefaultTableModel modelo = TemaUI.modeloNoEditable(
@@ -250,7 +245,6 @@ public class AdminFrame extends VentanaBase {
         return p;
     }
 
-    // ---- Coberturas ----
     private JPanel cardCoberturas() {
         JPanel p = panelConTitulo("Coberturas (obra social x estudio)");
         DefaultTableModel modelo = TemaUI.modeloNoEditable(

@@ -15,7 +15,6 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 
-/** Ventana del paciente. Hereda el esqueleto de VentanaBase. */
 public class PacienteFrame extends VentanaBase {
 
     private final PacienteServicio pacienteServicio = new PacienteServicio();
@@ -42,14 +41,12 @@ public class PacienteFrame extends VentanaBase {
         mostrar("misTurnos");
     }
 
-    // ---- Completar / editar datos del paciente ----
     private JPanel cardDatos() {
         JTextField txtFecha = TemaUI.campo();
         JTextField txtDomicilio = TemaUI.campo();
         JComboBox<ObraSocial> cboObra = new JComboBox<>();
         for (ObraSocial o : catalogoServicio.listarObrasSociales()) cboObra.addItem(o);
 
-        // Si ya tiene datos, los precargamos.
         Paciente actual = pacienteServicio.buscarDatos(usuario.getId());
         if (actual != null) {
             if (actual.getFechaNacimiento() != null) txtFecha.setText(actual.getFechaNacimiento().toString());
@@ -86,7 +83,6 @@ public class PacienteFrame extends VentanaBase {
         }, guardar);
     }
 
-    // ---- Actualizar datos de contacto ----
     private JPanel cardContacto() {
         JTextField txtNombre = TemaUI.campo();
         JTextField txtApellido = TemaUI.campo();
@@ -122,7 +118,6 @@ public class PacienteFrame extends VentanaBase {
         }, guardar);
     }
 
-    // ---- Solicitar turno ----
     private JPanel cardSolicitar() {
         JComboBox<Medico> cboMedico = new JComboBox<>();
         for (Medico m : catalogoServicio.listarMedicosActivos()) cboMedico.addItem(m);
@@ -180,7 +175,6 @@ public class PacienteFrame extends VentanaBase {
         return p;
     }
 
-    // ---- Mis turnos ----
     private JPanel cardMisTurnos() {
         JPanel p = panelConTitulo("Mis turnos");
         DefaultTableModel modelo = TemaUI.modeloNoEditable(
@@ -202,7 +196,6 @@ public class PacienteFrame extends VentanaBase {
         }
     }
 
-    // ---- Cancelar turno ----
     private JPanel cardCancelar() {
         JPanel p = panelConTitulo("Cancelar turno");
         DefaultTableModel modelo = TemaUI.modeloNoEditable(
@@ -238,7 +231,6 @@ public class PacienteFrame extends VentanaBase {
         return p;
     }
 
-    // ---- Ver resultados ----
     private JPanel cardResultados() {
         JPanel p = panelConTitulo("Resultados autorizados");
         DefaultTableModel modelo = TemaUI.modeloNoEditable(

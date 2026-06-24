@@ -9,7 +9,6 @@ import java.util.List;
 
 public class CoberturaDAO {
 
-    /** Lista todas las coberturas con los nombres de obra social y estudio para mostrar. */
     public List<Cobertura> listarTodas() {
         List<Cobertura> lista = new ArrayList<>();
         String sql = "SELECT c.id_obra_social, c.id_tipo_estudio, c.porcentaje_cobertura, c.vigente, " +
@@ -37,10 +36,6 @@ public class CoberturaDAO {
         return lista;
     }
 
-    /**
-     * Devuelve el porcentaje de cobertura VIGENTE para una obra social y un estudio.
-     * Si no hay cobertura vigente, devuelve 0 (el paciente paga el total).
-     */
     public double obtenerPorcentajeVigente(int idObraSocial, int idTipoEstudio) {
         String sql = "SELECT porcentaje_cobertura FROM cobertura " +
                 "WHERE id_obra_social = ? AND id_tipo_estudio = ? AND vigente = TRUE";
@@ -59,7 +54,6 @@ public class CoberturaDAO {
         return 0;
     }
 
-    /** Actualiza el porcentaje de una cobertura. */
     public boolean actualizarPorcentaje(int idObraSocial, int idTipoEstudio, double porcentaje) {
         String sql = "UPDATE cobertura SET porcentaje_cobertura = ? " +
                 "WHERE id_obra_social = ? AND id_tipo_estudio = ?";

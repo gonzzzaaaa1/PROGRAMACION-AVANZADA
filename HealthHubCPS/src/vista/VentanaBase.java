@@ -6,11 +6,6 @@ import util.TemaUI;
 import javax.swing.*;
 import java.awt.*;
 
-/**
- * Ventana base de la que heredan las ventanas de cada rol.
- * Arma el esqueleto comun: encabezado, menu lateral y area de contenido
- * con navegacion por tarjetas.
- */
 public abstract class VentanaBase extends JFrame {
 
     protected final Usuario usuario;
