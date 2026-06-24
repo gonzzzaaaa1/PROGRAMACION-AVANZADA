@@ -15,7 +15,7 @@ import modelo.Usuario;
 
 import java.util.List;
 
-/** Logica del medico: agenda, historia clinica, archivos y resultados. */
+
 public class MedicoServicio {
 
     private final TurnoDAO turnoDAO = new TurnoDAO();
@@ -24,22 +24,18 @@ public class MedicoServicio {
     private final ArchivoAdjuntoDAO archivoDAO = new ArchivoAdjuntoDAO();
     private final MedicoDAO medicoDAO = new MedicoDAO();
 
-    /** Pacientes que tienen turnos con este medico. */
     public List<Usuario> listarPacientes(int idMedico) {
         return medicoDAO.listarPacientesDelMedico(idMedico);
     }
 
-    /** Historia clinica de un paciente. */
     public HistoriaClinica verHistoria(int idPaciente) {
         return historiaDAO.buscarPorPaciente(idPaciente);
     }
 
-    /** Archivos adjuntos de la historia clinica de un paciente. */
     public List<ArchivoAdjunto> listarArchivos(int idPaciente) {
         return archivoDAO.listarPorPaciente(idPaciente);
     }
 
-    /** Adjunta un archivo a la historia clinica del paciente de un turno. */
     public Respuesta adjuntarArchivo(int idTurno, int idMedico, TipoArchivo tipo,
                                      FormatoArchivo formato, String url) {
         int idHistoria = historiaDAO.obtenerIdHistoriaDeTurno(idTurno);
@@ -61,10 +57,6 @@ public class MedicoServicio {
         return Respuesta.error("No se pudo adjuntar el archivo.");
     }
 
-    /**
-     * Carga el resultado de un turno. Si autorizarAhora es true, queda visible
-     * para el paciente de inmediato; si no, queda pendiente de autorizacion.
-     */
     public Respuesta subirResultado(int idTurno, String descripcion, boolean autorizarAhora, int idMedico) {
         if (descripcion == null || descripcion.trim().isEmpty()) {
             return Respuesta.error("La descripcion del resultado no puede estar vacia.");
@@ -82,7 +74,6 @@ public class MedicoServicio {
         return Respuesta.error("No se pudo cargar el resultado (puede que ese turno ya tenga uno).");
     }
 
-    /** Autoriza un resultado pendiente. */
     public Respuesta autorizarResultado(int idResultado, int idMedico) {
         if (resultadoDAO.autorizar(idResultado, idMedico)) {
             return Respuesta.ok("Resultado autorizado.");

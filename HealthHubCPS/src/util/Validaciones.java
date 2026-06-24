@@ -3,7 +3,7 @@ package util;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
-/** Validaciones y conversiones de datos de entrada usadas por la interfaz. */
+
 public class Validaciones {
 
     public static boolean vacio(String s) {
@@ -18,7 +18,7 @@ public class Validaciones {
         return s != null && s.matches("^[\\w.+-]+@[\\w.-]+\\.[A-Za-z]{2,}$");
     }
 
-    /** Convierte "AAAA-MM-DD" a LocalDate, o null si el formato es invalido. */
+
     public static LocalDate parsearFecha(String s) {
         try {
             return LocalDate.parse(s.trim());
@@ -27,7 +27,7 @@ public class Validaciones {
         }
     }
 
-    /** Convierte "HH:MM" a LocalTime, o null si el formato es invalido. */
+
     public static LocalTime parsearHora(String s) {
         try {
             return LocalTime.parse(s.trim());

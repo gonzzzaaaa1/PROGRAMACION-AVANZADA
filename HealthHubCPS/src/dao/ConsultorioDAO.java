@@ -9,7 +9,6 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
-/** DAO de la tabla consultorio. Incluye la logica de busqueda de consultorio libre. */
 public class ConsultorioDAO implements DAO<Consultorio> {
 
     @Override
@@ -89,10 +88,7 @@ public class ConsultorioDAO implements DAO<Consultorio> {
         return lista;
     }
 
-    /**
-     * Busca el primer consultorio que NO tenga un turno agendado en esa fecha y hora.
-     * Devuelve null si no hay ninguno libre.
-     */
+
     public Consultorio buscarLibre(LocalDate fecha, LocalTime hora) {
         String sql = "SELECT c.id_consultorio, c.numero, c.ubicacion FROM consultorio c " +
                 "WHERE c.id_consultorio NOT IN ( " +
@@ -115,7 +111,6 @@ public class ConsultorioDAO implements DAO<Consultorio> {
         return null;
     }
 
-    /** Consultorios donde un medico tiene turnos agendados en los proximos N dias. */
     public List<Consultorio> consultoriosDeMedico(int idMedico, int dias) {
         List<Consultorio> lista = new ArrayList<>();
         String sql = "SELECT DISTINCT c.id_consultorio, c.numero, c.ubicacion " +

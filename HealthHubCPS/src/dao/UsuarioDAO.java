@@ -11,7 +11,6 @@ import java.util.List;
 
 public class UsuarioDAO implements DAO<Usuario> {
 
-    /** Valida las credenciales y devuelve el usuario si existe y esta activo; si no, null. */
     public Usuario validarLogin(String dni, String contrasenia) {
         String sql = "SELECT id_usuario, dni, nombre, apellido, email, telefono, rol, activo " +
                 "FROM usuario WHERE dni = ? AND contrasenia = ? AND activo = TRUE";
@@ -73,13 +72,11 @@ public class UsuarioDAO implements DAO<Usuario> {
         return false;
     }
 
-    /** Baja logica: en vez de borrar el usuario, lo marca como inactivo. */
     @Override
     public boolean eliminar(int idUsuario) {
         return cambiarEstado(idUsuario, false);
     }
 
-    /** Activa o desactiva un usuario. */
     public boolean cambiarEstado(int idUsuario, boolean activo) {
         String sql = "UPDATE usuario SET activo = ? WHERE id_usuario = ?";
         Connection con = Conexion.getInstance().getConnection();
@@ -128,7 +125,6 @@ public class UsuarioDAO implements DAO<Usuario> {
         return lista;
     }
 
-    /** Convierte la fila actual del ResultSet en un objeto Usuario. */
     private Usuario mapear(ResultSet rs) throws SQLException {
         Usuario u = new Usuario();
         u.setId(rs.getInt("id_usuario"));

@@ -5,6 +5,8 @@ import modelo.EstadoTurno;
 import modelo.Turno;
 
 import java.sql.*;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -56,7 +58,6 @@ public class TurnoDAO implements DAO<Turno> {
         return false;
     }
 
-    /** Cancela un turno (cambia el estado y guarda el motivo). */
     public boolean cancelar(int idTurno, String motivo) {
         String sql = "UPDATE turno SET estado = 'CANCELADO'::estado_turno, motivo_cancel = ? " +
                 "WHERE id_turno = ?";
@@ -106,25 +107,76 @@ public class TurnoDAO implements DAO<Turno> {
         return ejecutarLista(baseSelect() + "ORDER BY t.fecha DESC, t.hora DESC", 0);
     }
 
-    /** Todos los turnos de un paciente (historial completo). */
     public List<Turno> listarPorPaciente(int idPaciente) {
         return ejecutarLista(baseSelect() + "WHERE t.id_paciente = ? " +
                 "ORDER BY t.fecha DESC, t.hora DESC", idPaciente);
     }
 
-    /** Turnos AGENDADOS de un paciente (los que se pueden cancelar). */
     public List<Turno> listarActivosPaciente(int idPaciente) {
         return ejecutarLista(baseSelect() + "WHERE t.id_paciente = ? AND t.estado = 'AGENDADO' " +
                 "ORDER BY t.fecha, t.hora", idPaciente);
     }
 
-    /** Agenda del medico: sus turnos AGENDADOS. */
+    public List<LocalTime> listarHorasOcupadasMedico(int idMedico, LocalDate fecha) {
+        List<LocalTime> horas = new ArrayList<>();
+        String sql = "SELECT hora FROM turno " +
+                "WHERE id_medico = ? AND fecha = ? AND estado = 'AGENDADO' " +
+                "ORDER BY hora";
+        Connection con = Conexion.getInstance().getConnection();
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, idMedico);
+            ps.setDate(2, Date.valueOf(fecha));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Time h = rs.getTime("hora");
+                    if (h != null) horas.add(h.toLocalTime());
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error al listar horas ocupadas: " + e.getMessage());
+        }
+        return horas;
+    }
+
+    public int contarConsultoriosOcupados(LocalDate fecha, LocalTime hora) {
+        String sql = "SELECT COUNT(DISTINCT id_consultorio) AS ocupados FROM turno " +
+                "WHERE fecha = ? AND hora = ? AND estado = 'AGENDADO'";
+        Connection con = Conexion.getInstance().getConnection();
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setDate(1, Date.valueOf(fecha));
+            ps.setTime(2, Time.valueOf(hora));
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt("ocupados");
+            }
+        } catch (SQLException e) {
+            System.out.println("Error al contar consultorios ocupados: " + e.getMessage());
+        }
+        return 0;
+    }
+
+
+    public boolean medicoOcupado(int idMedico, LocalDate fecha, LocalTime hora) {
+        String sql = "SELECT 1 FROM turno " +
+                "WHERE id_medico = ? AND fecha = ? AND hora = ? AND estado = 'AGENDADO' LIMIT 1";
+        Connection con = Conexion.getInstance().getConnection();
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, idMedico);
+            ps.setDate(2, Date.valueOf(fecha));
+            ps.setTime(3, Time.valueOf(hora));
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            System.out.println("Error al verificar disponibilidad del medico: " + e.getMessage());
+        }
+        return false;
+    }
+
     public List<Turno> listarAgendaMedico(int idMedico) {
         return ejecutarLista(baseSelect() + "WHERE t.id_medico = ? AND t.estado = 'AGENDADO' " +
                 "ORDER BY t.fecha, t.hora", idMedico);
     }
 
-    /** Turnos del medico (no cancelados) que todavia no tienen resultado cargado. */
     public List<Turno> listarSinResultadoMedico(int idMedico) {
         return ejecutarLista(baseSelect() + "WHERE t.id_medico = ? AND t.estado <> 'CANCELADO' " +
                 "AND t.id_turno NOT IN (SELECT id_turno FROM resultado) " +

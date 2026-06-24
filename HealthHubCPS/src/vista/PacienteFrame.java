@@ -14,8 +14,11 @@ import java.awt.*;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.time.ZoneId;
+import java.util.Calendar;
+import java.util.Date;
 
-/** Ventana del paciente. Hereda el esqueleto de VentanaBase. */
+
 public class PacienteFrame extends VentanaBase {
 
     private final PacienteServicio pacienteServicio = new PacienteServicio();
@@ -42,14 +45,14 @@ public class PacienteFrame extends VentanaBase {
         mostrar("misTurnos");
     }
 
-    // ---- Completar / editar datos del paciente ----
+
     private JPanel cardDatos() {
         JTextField txtFecha = TemaUI.campo();
         JTextField txtDomicilio = TemaUI.campo();
         JComboBox<ObraSocial> cboObra = new JComboBox<>();
         for (ObraSocial o : catalogoServicio.listarObrasSociales()) cboObra.addItem(o);
 
-        // Si ya tiene datos, los precargamos.
+
         Paciente actual = pacienteServicio.buscarDatos(usuario.getId());
         if (actual != null) {
             if (actual.getFechaNacimiento() != null) txtFecha.setText(actual.getFechaNacimiento().toString());
@@ -86,7 +89,7 @@ public class PacienteFrame extends VentanaBase {
         }, guardar);
     }
 
-    // ---- Actualizar datos de contacto ----
+
     private JPanel cardContacto() {
         JTextField txtNombre = TemaUI.campo();
         JTextField txtApellido = TemaUI.campo();
@@ -122,15 +125,50 @@ public class PacienteFrame extends VentanaBase {
         }, guardar);
     }
 
-    // ---- Solicitar turno ----
+
     private JPanel cardSolicitar() {
         JComboBox<Medico> cboMedico = new JComboBox<>();
         for (Medico m : catalogoServicio.listarMedicosActivos()) cboMedico.addItem(m);
         JComboBox<TipoEstudio> cboEstudio = new JComboBox<>();
         for (TipoEstudio t : catalogoServicio.listarTiposEstudio()) cboEstudio.addItem(t);
-        JTextField txtFecha = TemaUI.campo();
-        JTextField txtHora = TemaUI.campo();
+
+
+        Date hoy = Date.from(LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant());
+        SpinnerDateModel modeloFecha = new SpinnerDateModel(hoy, hoy, null, Calendar.DAY_OF_MONTH);
+        JSpinner spnFecha = new JSpinner(modeloFecha);
+        spnFecha.setEditor(new JSpinner.DateEditor(spnFecha, "dd/MM/yyyy"));
+        spnFecha.setFont(TemaUI.NORMAL);
+        ((JSpinner.DefaultEditor) spnFecha.getEditor()).getTextField().setEditable(false);
+
+
+        JComboBox<LocalTime> cboHora = new JComboBox<>();
+        JLabel lblEstadoHoras = TemaUI.etiqueta(" ");
+
         JLabel lblMonto = TemaUI.etiqueta("Monto estimado: -");
+
+
+        Runnable recargarHoras = () -> {
+            cboHora.removeAllItems();
+            Medico m = (Medico) cboMedico.getSelectedItem();
+            TipoEstudio te = (TipoEstudio) cboEstudio.getSelectedItem();
+            if (m == null || te == null) {
+                lblEstadoHoras.setText("Selecciona medico y estudio.");
+                return;
+            }
+            LocalDate fecha = fechaDeSpinner(spnFecha);
+            List<LocalTime> libres = turnoServicio.horariosDisponibles(fecha, m.getId(), te.getId());
+            if (libres.isEmpty()) {
+                lblEstadoHoras.setText("No hay horarios disponibles ese dia. Proba con otra fecha.");
+            } else {
+                for (LocalTime h : libres) cboHora.addItem(h);
+                lblEstadoHoras.setText(libres.size() + " horario(s) disponible(s).");
+            }
+        };
+
+        cboMedico.addActionListener(e -> recargarHoras.run());
+        cboEstudio.addActionListener(e -> recargarHoras.run());
+        spnFecha.addChangeListener(e -> recargarHoras.run());
+        recargarHoras.run();
 
         JButton calcular = TemaUI.botonAccion("Calcular monto");
         calcular.addActionListener(e -> {
@@ -144,12 +182,13 @@ public class PacienteFrame extends VentanaBase {
         solicitar.addActionListener(e -> {
             Medico m = (Medico) cboMedico.getSelectedItem();
             TipoEstudio te = (TipoEstudio) cboEstudio.getSelectedItem();
-            LocalDate fecha = Validaciones.parsearFecha(txtFecha.getText());
-            LocalTime hora = Validaciones.parsearHora(txtHora.getText());
+            LocalDate fecha = fechaDeSpinner(spnFecha);
+            LocalTime hora = (LocalTime) cboHora.getSelectedItem();
             if (m == null || te == null) { aviso("Selecciona medico y estudio."); return; }
-            if (fecha == null) { aviso("Fecha invalida (AAAA-MM-DD)."); return; }
-            if (hora == null) { aviso("Hora invalida (HH:MM)."); return; }
+            if (fecha == null) { aviso("Selecciona una fecha valida."); return; }
+            if (hora == null) { aviso("Selecciona un horario disponible de la lista."); return; }
             mostrarRespuesta(turnoServicio.solicitarTurno(usuario.getId(), fecha, hora, m.getId(), te.getId()));
+            recargarHoras.run();
         });
 
         JPanel caja = new JPanel();
@@ -158,8 +197,9 @@ public class PacienteFrame extends VentanaBase {
         JComponent[] filas = {
                 TemaUI.fila("Medico", cboMedico),
                 TemaUI.fila("Estudio", cboEstudio),
-                TemaUI.fila("Fecha (AAAA-MM-DD)", txtFecha),
-                TemaUI.fila("Hora (HH:MM)", txtHora),
+                TemaUI.fila("Fecha", spnFecha),
+                TemaUI.fila("Horario", cboHora),
+                lblEstadoHoras,
                 lblMonto
         };
         for (JComponent f : filas) {
@@ -180,7 +220,13 @@ public class PacienteFrame extends VentanaBase {
         return p;
     }
 
-    // ---- Mis turnos ----
+
+    private LocalDate fechaDeSpinner(JSpinner spnFecha) {
+        Date d = (Date) spnFecha.getValue();
+        return d.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+    }
+
+
     private JPanel cardMisTurnos() {
         JPanel p = panelConTitulo("Mis turnos");
         DefaultTableModel modelo = TemaUI.modeloNoEditable(
@@ -202,7 +248,7 @@ public class PacienteFrame extends VentanaBase {
         }
     }
 
-    // ---- Cancelar turno ----
+
     private JPanel cardCancelar() {
         JPanel p = panelConTitulo("Cancelar turno");
         DefaultTableModel modelo = TemaUI.modeloNoEditable(
@@ -238,7 +284,7 @@ public class PacienteFrame extends VentanaBase {
         return p;
     }
 
-    // ---- Ver resultados ----
+
     private JPanel cardResultados() {
         JPanel p = panelConTitulo("Resultados autorizados");
         DefaultTableModel modelo = TemaUI.modeloNoEditable(

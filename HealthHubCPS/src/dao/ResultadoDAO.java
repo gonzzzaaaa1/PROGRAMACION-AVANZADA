@@ -9,10 +9,6 @@ import java.util.List;
 
 public class ResultadoDAO implements DAO<Resultado> {
 
-    /**
-     * Inserta un resultado. Si el resultado viene como autorizado, guarda tambien
-     * la fecha de autorizacion y el medico que lo autoriza.
-     */
     @Override
     public boolean insertar(Resultado r) {
         String sql;
@@ -51,7 +47,6 @@ public class ResultadoDAO implements DAO<Resultado> {
         return false;
     }
 
-    /** Autoriza un resultado pendiente para que el paciente pueda verlo. */
     public boolean autorizar(int idResultado, int idMedico) {
         String sql = "UPDATE resultado SET autorizado = TRUE, fecha_autorizacion = CURRENT_DATE, " +
                 "id_medico_autoriza = ? WHERE id_resultado = ? AND autorizado = FALSE";
@@ -130,7 +125,6 @@ public class ResultadoDAO implements DAO<Resultado> {
         return lista;
     }
 
-    /** Resultados pendientes de autorizar de los turnos de un medico. */
     public List<Resultado> listarPendientesMedico(int idMedico) {
         List<Resultado> lista = new ArrayList<>();
         String sql = "SELECT r.id_resultado, r.descripcion, t.fecha, u.nombre, u.apellido, " +
@@ -160,7 +154,6 @@ public class ResultadoDAO implements DAO<Resultado> {
         return lista;
     }
 
-    /** Resultados autorizados de un paciente (lo que el paciente puede ver). */
     public List<Resultado> listarAutorizadosPaciente(int idPaciente) {
         List<Resultado> lista = new ArrayList<>();
         String sql = "SELECT r.id_resultado, r.descripcion, r.fecha_autorizacion, t.fecha, " +

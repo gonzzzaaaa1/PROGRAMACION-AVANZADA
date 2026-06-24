@@ -96,7 +96,6 @@ public class PacienteDAO implements DAO<Paciente> {
         return lista;
     }
 
-    /** Indica si el usuario ya cargo sus datos de paciente. */
     public boolean tieneDatos(int idUsuario) {
         String sql = "SELECT COUNT(*) FROM paciente WHERE id_usuario = ?";
         Connection con = Conexion.getInstance().getConnection();
