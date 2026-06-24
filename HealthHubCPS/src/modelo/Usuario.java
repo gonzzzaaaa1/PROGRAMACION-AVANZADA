@@ -2,10 +2,6 @@ package modelo;
 
 import java.time.LocalDate;
 
-/**
- * Entidad base del sistema. Representa a cualquier usuario (paciente, medico o admin).
- * Paciente y Medico heredan de esta clase agregando sus datos especificos.
- */
 public class Usuario {
     private int id;
     private String dni;
